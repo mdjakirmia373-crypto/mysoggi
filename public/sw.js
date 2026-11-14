@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'my-assistant-v1.4.0';
+const CACHE_VERSION = 'my-assistant-v1.5.0';
 const CORE_ASSETS = [
   '/',
   '/index.html',
@@ -79,6 +79,55 @@ self.addEventListener('fetch', (event) => {
         .catch(() => cachedResponse);
 
       return cachedResponse || fetchPromise;
+    })
+  );
+});
+
+// Background & Lock-Screen Persistent Notification Handlers
+self.addEventListener('message', (event) => {
+  const payload = event.data || {};
+  if (payload.type === 'SHOW_TASK_NOTIFICATION' && payload.title) {
+    event.waitUntil(
+      self.registration.showNotification(payload.title, {
+        body: payload.body || '',
+        icon: '/pwa-192x192.png',
+        badge: '/pwa-192x192.png',
+        tag: payload.tag || 'routine-reminder',
+        renotify: true,
+        requireInteraction: true,
+        vibrate: [300, 140, 300, 140, 480],
+        data: { taskId: payload.taskId || '' },
+        actions: [
+          { action: 'done', title: 'হ্যাঁ, করেছি' },
+          { action: 'snooze', title: '১০ মিনিট পর' }
+        ]
+      })
+    );
+  }
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const action = event.action || 'open';
+  const taskId = (event.notification.data && event.notification.data.taskId) || '';
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      if (clientList.length > 0) {
+        const client = clientList[0];
+        if (action === 'done' || action === 'snooze') {
+          client.postMessage({ type: 'NOTIFICATION_ACTION', action, taskId });
+        }
+        if (action === 'open' && 'focus' in client) {
+          return client.focus();
+        }
+        return Promise.resolve();
+      }
+      const targetUrl =
+        action === 'done' || action === 'snooze'
+          ? `/?action=${encodeURIComponent(action)}&taskId=${encodeURIComponent(taskId)}`
+          : '/';
+      return self.clients.openWindow(targetUrl);
     })
   );
 });

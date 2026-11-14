@@ -111,7 +111,6 @@
     --default-transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     --default-font-family: var(--font-sans);
     --default-mono-font-family: var(--font-mono);
-    --font-display: "Outfit", "Hind Siliguri", system-ui, sans-serif;
   }
 }
 @layer base {
@@ -457,6 +456,9 @@
   }
   .max-w-lg {
     max-width: var(--container-lg);
+  }
+  .max-w-md {
+    max-width: var(--container-md);
   }
   .max-w-sm {
     max-width: var(--container-sm);
@@ -805,6 +807,12 @@
   .bg-emerald-500 {
     background-color: var(--color-emerald-500);
   }
+  .bg-emerald-500\/15 {
+    background-color: color-mix(in srgb, oklch(69.6% 0.17 162.48) 15%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      background-color: color-mix(in oklab, var(--color-emerald-500) 15%, transparent);
+    }
+  }
   .bg-emerald-500\/20 {
     background-color: color-mix(in srgb, oklch(69.6% 0.17 162.48) 20%, transparent);
     @supports (color: color-mix(in lab, red, red)) {
@@ -1018,9 +1026,6 @@
   .text-right {
     text-align: right;
   }
-  .font-display {
-    font-family: var(--font-display);
-  }
   .text-2xl {
     font-size: var(--text-2xl);
     line-height: var(--tw-leading, var(--text-2xl--line-height));
@@ -1097,6 +1102,12 @@
   .text-emerald-300 {
     color: var(--color-emerald-300);
   }
+  .text-emerald-300\/90 {
+    color: color-mix(in srgb, oklch(84.5% 0.143 164.978) 90%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      color: color-mix(in oklab, var(--color-emerald-300) 90%, transparent);
+    }
+  }
   .text-emerald-400 {
     color: var(--color-emerald-400);
   }
@@ -1111,6 +1122,12 @@
   }
   .text-sky-300 {
     color: var(--color-sky-300);
+  }
+  .text-sky-300\/90 {
+    color: color-mix(in srgb, oklch(82.8% 0.111 230.318) 90%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      color: color-mix(in oklab, var(--color-sky-300) 90%, transparent);
+    }
   }
   .text-sky-400 {
     color: var(--color-sky-400);
@@ -1274,6 +1291,14 @@
     @supports (color: color-mix(in lab, red, red)) {
       .hover\:bg-amber-500\/25:hover {
         background-color: color-mix(in oklab, var(--color-amber-500) 25%, transparent);
+      }
+    }
+    .hover\:bg-emerald-500\/25:hover {
+      background-color: color-mix(in srgb, oklch(69.6% 0.17 162.48) 25%, transparent);
+    }
+    @supports (color: color-mix(in lab, red, red)) {
+      .hover\:bg-emerald-500\/25:hover {
+        background-color: color-mix(in oklab, var(--color-emerald-500) 25%, transparent);
       }
     }
     .hover\:bg-emerald-500\/30:hover {
@@ -2317,8 +2342,8 @@
                 হ্যান্ডস-ফ্রি অভিভাবক প্রস্তুত
               </div>
 
-              <!-- Hands-Free Guardian Arming Toggle -->
-              <div class="flex items-center justify-center gap-2">
+              <!-- Hands-Free Guardian Arming & Background Mode Toggles -->
+              <div class="flex flex-wrap items-center justify-center gap-2">
                 <button
                   id="guardian-arm-btn"
                   type="button"
@@ -2326,7 +2351,18 @@
                 >
                   অভিভাবক অটো-রিমাইন্ডার চালু করুন
                 </button>
+                <button
+                  id="bg-mode-btn"
+                  type="button"
+                  title="স্ক্রিন বন্ধ বা অন্য অ্যাপ ব্যবহারের সময়ও ডেকে দেওয়ার মোড"
+                  class="btn-touch px-3.5 py-2 rounded-xl text-xs font-medium border transition-colors whitespace-nowrap"
+                >
+                  ব্যাকগ্রাউন্ড ও লক-স্ক্রিন: চালু
+                </button>
               </div>
+              <p id="bg-mode-hint" class="text-[11px] text-slate-400 max-w-md mx-auto leading-relaxed px-2">
+                স্ক্রিন বন্ধ থাকলেও বা অন্য অ্যাপ চালালেও সময়মতো ডেকে দেবে (অ্যাপটি রিসেন্ট থেকে পুরো বন্ধ করবেন না)।
+              </p>
             </div>
 
             <!-- Spoken Prompt & Live Voice Reply Transcript -->
@@ -3006,6 +3042,8 @@
       </div>
     </div>
 
+    <audio id="bg-keepalive-audio" loop playsinline preload="auto" class="hidden"></audio>
+
     <script>
       (function () {
         'use strict';
@@ -3051,6 +3089,7 @@
             mood: 'caring',
             filter: 'all',
             guardianArmed: false,
+            backgroundMode: true,
             timeMode: 'auto', // 'auto' (strictly device clock) | 'custom' (user-set offset)
             timeOffsetMs: 0,
             voiceURI: 'auto',
@@ -3066,6 +3105,11 @@
           speechQueueTimer: null,
           speechSessionId: 0,
           voices: [],
+          bgKeepAliveActive: false,
+          bgWorker: null,
+          lastScheduleCheckMs: 0,
+          pendingFollowUpTaskId: null,
+          bgRepeatTimer: null,
         };
 
         function getAppNow() {
@@ -3326,6 +3370,9 @@
           orbBtnCaption: document.getElementById('orb-btn-caption'),
           orbStateText: document.getElementById('orb-state-text'),
           guardianArmBtn: document.getElementById('guardian-arm-btn'),
+          bgModeBtn: document.getElementById('bg-mode-btn'),
+          bgModeHint: document.getElementById('bg-mode-hint'),
+          bgKeepAliveAudio: document.getElementById('bg-keepalive-audio'),
           activeTaskIndicator: document.getElementById('active-task-indicator'),
           guardianSpeechLog: document.getElementById('guardian-speech-log'),
           userTranscriptRow: document.getElementById('user-transcript-row'),
@@ -3394,6 +3441,125 @@
         let audioUnlocked = false;
         let restoreDefaultsArmed = false;
 
+        let silentWavUrl = null;
+
+        function createSilentWavDataUrl() {
+          if (silentWavUrl) return silentWavUrl;
+          // 1-second 8kHz 8-bit mono silent PCM WAV (~8KB) so Chrome MediaSession stays alive completely offline
+          const sampleRate = 8000;
+          const numSamples = sampleRate;
+          const buffer = new ArrayBuffer(44 + numSamples);
+          const view = new DataView(buffer);
+          const writeStr = (offset, str) => {
+            for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+          };
+          writeStr(0, 'RIFF');
+          view.setUint32(4, 36 + numSamples, true);
+          writeStr(8, 'WAVE');
+          writeStr(12, 'fmt ');
+          view.setUint32(16, 16, true);
+          view.setUint16(20, 1, true);
+          view.setUint16(22, 1, true);
+          view.setUint32(24, sampleRate, true);
+          view.setUint32(28, sampleRate, true);
+          view.setUint16(32, 1, true);
+          view.setUint16(34, 8, true);
+          writeStr(36, 'data');
+          view.setUint32(40, numSamples, true);
+          for (let i = 0; i < numSamples; i++) view.setUint8(44 + i, 128);
+          const bytes = new Uint8Array(buffer);
+          let binary = '';
+          for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+          silentWavUrl = 'data:audio/wav;base64,' + btoa(binary);
+          return silentWavUrl;
+        }
+
+        function updateMediaSessionMetadata(activeTask = null) {
+          if (!('mediaSession' in navigator)) return;
+          try {
+            const name = getUserAddressName();
+            const target = activeTask || getNextPendingTask();
+            const title = activeTask
+              ? `⏰ ${activeTask.title}`
+              : target
+              ? `পরবর্তী: ${formatDisplayTime(target.time)} · ${target.title}`
+              : 'আজকের সব রুটিন সম্পন্ন';
+            const artist = name ? `${name} · My Assistant অভিভাবক` : 'My Assistant অভিভাবক';
+            navigator.mediaSession.metadata = new MediaMetadata({
+              title,
+              artist,
+              album: 'সক্রিয় ব্যাকগ্রাউন্ড রিমাইন্ডার',
+              artwork: [
+                { src: '/pwa-192x192.png', sizes: '192x192', type: 'image/png' },
+                { src: '/pwa-512x512.png', sizes: '512x512', type: 'image/png' },
+              ],
+            });
+            navigator.mediaSession.setActionHandler('play', () => {
+              startBackgroundKeepAlive();
+            });
+            navigator.mediaSession.setActionHandler('pause', () => {
+              if (state.activeTaskId) snoozeTask(state.activeTaskId, 10, false);
+              else stopAllVoiceActivity();
+            });
+            navigator.mediaSession.setActionHandler('nexttrack', () => {
+              const next = getNextPendingTask();
+              if (next) triggerTaskVoice(next.id, { fromSchedule: false });
+            });
+          } catch (_) {}
+        }
+
+        function startBackgroundKeepAlive() {
+          if (!state.settings.guardianArmed || !state.settings.backgroundMode) return;
+          const audio = els.bgKeepAliveAudio;
+          if (!audio) return;
+          if (!audio.src) audio.src = createSilentWavDataUrl();
+          audio.volume = 0.01;
+          audio.loop = true;
+          const p = audio.play();
+          if (p && typeof p.then === 'function') {
+            p.then(() => {
+              state.bgKeepAliveActive = true;
+              if ('mediaSession' in navigator) {
+                try {
+                  navigator.mediaSession.playbackState = 'playing';
+                } catch (_) {}
+              }
+              updateMediaSessionMetadata();
+              renderBgModeButton();
+            }).catch(() => {
+              state.bgKeepAliveActive = false;
+              renderBgModeButton();
+            });
+          } else {
+            state.bgKeepAliveActive = true;
+            updateMediaSessionMetadata();
+            renderBgModeButton();
+          }
+        }
+
+        function stopBackgroundKeepAlive() {
+          const audio = els.bgKeepAliveAudio;
+          if (audio) {
+            try {
+              audio.pause();
+            } catch (_) {}
+          }
+          state.bgKeepAliveActive = false;
+          if ('mediaSession' in navigator) {
+            try {
+              navigator.mediaSession.playbackState = 'none';
+            } catch (_) {}
+          }
+          renderBgModeButton();
+        }
+
+        function clearBgRepeatTimer() {
+          if (state.bgRepeatTimer) {
+            clearTimeout(state.bgRepeatTimer);
+            state.bgRepeatTimer = null;
+          }
+        }
+
         function unlockAudioContext() {
           audioUnlocked = true;
           if (els.audioUnlockBanner) {
@@ -3408,9 +3574,12 @@
               audioCtx.resume().catch(() => {});
             }
           } catch (_) {}
+          if (state.settings.guardianArmed && state.settings.backgroundMode && !state.bgKeepAliveActive) {
+            startBackgroundKeepAlive();
+          }
         }
 
-        function playGuardianChime() {
+        function playGuardianChime(urgent = false) {
           try {
             const Ctx = window.AudioContext || window.webkitAudioContext;
             if (!Ctx) return;
@@ -3419,18 +3588,25 @@
               audioCtx.resume().catch(() => {});
             }
             const now = audioCtx.currentTime;
-            // Warm gentle organic chime (C5 -> E5 -> G5 soft harmonic bloom)
-            const notes = [
-              { freq: 523.25, delay: 0, dur: 0.42 },
-              { freq: 659.25, delay: 0.12, dur: 0.48 },
-            ];
+            // Warm gentle organic chime (3-note harmonic bell when scheduled alert sounds)
+            const notes = urgent
+              ? [
+                  { freq: 523.25, delay: 0, dur: 0.45 },
+                  { freq: 659.25, delay: 0.12, dur: 0.48 },
+                  { freq: 783.99, delay: 0.25, dur: 0.6 },
+                ]
+              : [
+                  { freq: 523.25, delay: 0, dur: 0.42 },
+                  { freq: 659.25, delay: 0.12, dur: 0.48 },
+                ];
+            const peakGain = urgent ? 0.15 : 0.09;
             notes.forEach(({ freq, delay, dur }) => {
               const osc = audioCtx.createOscillator();
               const gain = audioCtx.createGain();
               osc.type = 'sine';
               osc.frequency.setValueAtTime(freq, now + delay);
               gain.gain.setValueAtTime(0.0001, now + delay);
-              gain.gain.linearRampToValueAtTime(0.09, now + delay + 0.045);
+              gain.gain.linearRampToValueAtTime(peakGain, now + delay + 0.045);
               gain.gain.exponentialRampToValueAtTime(0.0001, now + delay + dur);
               osc.connect(gain);
               gain.connect(audioCtx.destination);
@@ -3564,6 +3740,8 @@
         }
 
         function stopAllVoiceActivity() {
+          clearBgRepeatTimer();
+          state.pendingFollowUpTaskId = null;
           state.speechSessionId += 1;
           if (state.speechWatchdog) {
             clearTimeout(state.speechWatchdog);
@@ -4015,6 +4193,8 @@
         function completeTask(id, viaVoice = false) {
           const task = state.tasks.find((t) => t.id === id);
           if (!task) return;
+          clearBgRepeatTimer();
+          if (state.pendingFollowUpTaskId === id) state.pendingFollowUpTaskId = null;
           task.completed = true;
           task.snoozeUntil = null;
           task.triggeredToday = true;
@@ -4025,6 +4205,7 @@
           }
           saveState();
           renderAll();
+          updateMediaSessionMetadata();
           if (viaVoice) {
             speakBengali(buildCompletionSpeech(task), { listenAfter: false });
           }
@@ -4033,6 +4214,8 @@
         function toggleTaskComplete(id) {
           const task = state.tasks.find((t) => t.id === id);
           if (!task) return;
+          clearBgRepeatTimer();
+          if (state.pendingFollowUpTaskId === id) state.pendingFollowUpTaskId = null;
           task.completed = !task.completed;
           if (task.completed) {
             task.snoozeUntil = null;
@@ -4046,11 +4229,14 @@
           }
           saveState();
           renderAll();
+          updateMediaSessionMetadata();
         }
 
         function snoozeTask(id, minutes = 10, viaVoice = false) {
           const task = state.tasks.find((t) => t.id === id);
           if (!task) return;
+          clearBgRepeatTimer();
+          if (state.pendingFollowUpTaskId === id) state.pendingFollowUpTaskId = null;
           task.completed = false;
           task.snoozeUntil = getAppNow().getTime() + minutes * 60 * 1000;
           task.triggeredToday = true;
@@ -4061,12 +4247,15 @@
           }
           saveState();
           renderAll();
+          updateMediaSessionMetadata();
           if (viaVoice) {
             speakBengali(buildSnoozeSpeech(task, minutes), { listenAfter: false });
           }
         }
 
         function deleteTask(id) {
+          clearBgRepeatTimer();
+          if (state.pendingFollowUpTaskId === id) state.pendingFollowUpTaskId = null;
           state.tasks = state.tasks.filter((t) => t.id !== id);
           if (state.activeTaskId === id) {
             state.activeTaskId = null;
@@ -4075,9 +4264,48 @@
           }
           saveState();
           renderAll();
+          updateMediaSessionMetadata();
         }
 
-        function triggerTaskVoice(id, { fromSchedule = false } = {}) {
+        function dispatchPersistentTaskNotification(task) {
+          const name = getUserAddressName();
+          const title = name ? `⏰ ${name}, কাজের সময় হয়েছে!` : '⏰ রুটিন রিমাইন্ডার';
+          const body = `${formatDisplayTime(task.time)} — ${task.title}${task.note ? ' (' + task.note + ')' : ''}`;
+          const tag = 'task-' + task.id;
+
+          if ('serviceWorker' in navigator) {
+            const postToSw = (sw) => {
+              if (!sw) return false;
+              sw.postMessage({
+                type: 'SHOW_TASK_NOTIFICATION',
+                title,
+                body,
+                tag,
+                taskId: task.id,
+              });
+              return true;
+            };
+            if (postToSw(navigator.serviceWorker.controller)) return;
+            navigator.serviceWorker.ready
+              .then((reg) => {
+                if (reg && reg.active) {
+                  postToSw(reg.active);
+                } else if ('Notification' in window && Notification.permission === 'granted') {
+                  new Notification(title, { body, icon: '/pwa-192x192.png', tag, requireInteraction: true });
+                }
+              })
+              .catch(() => {});
+            return;
+          }
+
+          if ('Notification' in window && Notification.permission === 'granted') {
+            try {
+              new Notification(title, { body, icon: '/pwa-192x192.png', tag, requireInteraction: true });
+            } catch (_) {}
+          }
+        }
+
+        function triggerTaskVoice(id, { fromSchedule = false, isRepeat = false } = {}) {
           const task = state.tasks.find((t) => t.id === id);
           if (!task) return;
           task.triggeredToday = true;
@@ -4085,22 +4313,39 @@
           saveState();
           renderAll();
 
-          playGuardianChime();
+          if (fromSchedule && 'vibrate' in navigator) {
+            try {
+              navigator.vibrate([320, 140, 320, 140, 480]);
+            } catch (_) {}
+          }
+
+          playGuardianChime(fromSchedule);
+          updateMediaSessionMetadata(task);
 
           if (fromSchedule && 'Notification' in window && Notification.permission === 'granted') {
-            try {
-              const name = getUserAddressName();
-              new Notification(name ? `${name} · রুটিন রিমাইন্ডার` : 'রুটিন রিমাইন্ডার', {
-                body: `${name ? name + ', ' : ''}${formatDisplayTime(task.time)} — ${task.title}`,
-                icon: '/pwa-192x192.png',
-                tag: 'task-' + task.id,
-              });
-            } catch (_) {}
+            dispatchPersistentTaskNotification(task);
+          }
+
+          const isHidden = document.hidden || document.visibilityState === 'hidden';
+          if (isHidden) {
+            state.pendingFollowUpTaskId = task.id;
+            if (fromSchedule && !isRepeat && state.settings.backgroundMode) {
+              clearBgRepeatTimer();
+              state.bgRepeatTimer = setTimeout(() => {
+                const latest = state.tasks.find((t) => t.id === task.id);
+                if (latest && !latest.completed && !latest.snoozeUntil && state.settings.guardianArmed) {
+                  triggerTaskVoice(task.id, { fromSchedule: true, isRepeat: true });
+                }
+              }, 120000);
+            }
+          } else {
+            state.pendingFollowUpTaskId = null;
+            clearBgRepeatTimer();
           }
 
           const msg = buildReminderSpeech(task);
           setTimeout(() => {
-            speakBengali(msg, { listenAfter: true, taskId: task.id });
+            speakBengali(msg, { listenAfter: !isHidden, taskId: task.id });
           }, 320);
         }
 
@@ -4184,6 +4429,10 @@
         }
 
         function checkSchedule() {
+          const realNowMs = Date.now();
+          if (realNowMs - state.lastScheduleCheckMs < 750) return;
+          state.lastScheduleCheckMs = realNowMs;
+
           const now = getAppNow();
           const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
@@ -4249,6 +4498,45 @@
           els.moodSubtitle.textContent = meta.label;
         }
 
+        function renderBgModeButton() {
+          if (!els.bgModeBtn || !els.bgModeHint) return;
+          const notifPerm = 'Notification' in window ? Notification.permission : 'unsupported';
+          if (state.settings.backgroundMode) {
+            const activeKeep = state.settings.guardianArmed && state.bgKeepAliveActive;
+            els.bgModeBtn.textContent = activeKeep
+              ? 'ব্যাকগ্রাউন্ড ও লক-স্ক্রিন: সক্রিয়'
+              : 'ব্যাকগ্রাউন্ড ও লক-স্ক্রিন: চালু';
+            els.bgModeBtn.className = activeKeep
+              ? 'btn-touch px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-400/35 text-emerald-200 transition-colors whitespace-nowrap'
+              : 'btn-touch px-3.5 py-2 rounded-xl text-xs font-semibold bg-sky-500/10 hover:bg-sky-500/20 border border-sky-400/30 text-sky-200 transition-colors whitespace-nowrap';
+
+            if (!state.settings.guardianArmed) {
+              els.bgModeHint.textContent =
+                'অটো-রিমাইন্ডার চালু করলে ফোন পকেটে, স্ক্রিন বন্ধ বা অন্য অ্যাপে থাকলেও ডেকে দেবে।';
+              els.bgModeHint.className = 'text-[11px] text-slate-400 max-w-md mx-auto leading-relaxed px-2';
+            } else if (notifPerm === 'denied') {
+              els.bgModeHint.textContent =
+                'লক-স্ক্রিনে অ্যালার্ট পেতে ব্রাউজার Settings → Notifications Allow করুন (অ্যাপটি রিসেন্ট থেকে পুরো বন্ধ করবেন না)।';
+              els.bgModeHint.className = 'text-[11px] text-amber-300/90 max-w-md mx-auto leading-relaxed px-2';
+            } else if (state.bgKeepAliveActive) {
+              els.bgModeHint.textContent =
+                'ব্যাকগ্রাউন্ড সেশন চালু আছে — ফোন লক বা অন্য অ্যাপে থাকলেও সময়মতো ভয়েস ও নোটিফিকেশন বাজবে।';
+              els.bgModeHint.className = 'text-[11px] text-emerald-300/90 max-w-md mx-auto leading-relaxed px-2';
+            } else {
+              els.bgModeHint.textContent =
+                'ব্যাকগ্রাউন্ড ভয়েস সক্রিয় করতে স্ক্রিনে একবার ট্যাপ করুন (অ্যাপটি রিসেন্ট থেকে পুরো কাটবেন না)।';
+              els.bgModeHint.className = 'text-[11px] text-sky-300/90 max-w-md mx-auto leading-relaxed px-2';
+            }
+          } else {
+            els.bgModeBtn.textContent = 'ব্যাকগ্রাউন্ড ও লক-স্ক্রিন: বন্ধ';
+            els.bgModeBtn.className =
+              'btn-touch px-3.5 py-2 rounded-xl text-xs font-medium bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 text-slate-300 transition-colors whitespace-nowrap';
+            els.bgModeHint.textContent =
+              'ব্যাকগ্রাউন্ড মোড বন্ধ — কেবল অ্যাপ খোলা অবস্থায় রিমাইন্ডার বাজবে।';
+            els.bgModeHint.className = 'text-[11px] text-slate-400 max-w-md mx-auto leading-relaxed px-2';
+          }
+        }
+
         function renderGuardianArmButton() {
           if (state.settings.guardianArmed) {
             els.guardianArmBtn.textContent = 'অটো-রিমাইন্ডার চালু আছে (বন্ধ করতে ট্যাপ করুন)';
@@ -4259,6 +4547,7 @@
             els.guardianArmBtn.className =
               'btn-touch px-4 py-2 rounded-xl text-xs font-semibold bg-sky-500/15 hover:bg-sky-500/25 border border-sky-400/35 text-sky-200 transition-colors whitespace-nowrap';
           }
+          renderBgModeButton();
           if (state.orbState === 'idle') {
             setOrbState('idle');
           }
@@ -4740,6 +5029,23 @@
           if (document.visibilityState === 'visible') {
             renderTodayDate();
             checkSchedule();
+            if (state.settings.guardianArmed && state.settings.backgroundMode) {
+              startBackgroundKeepAlive();
+            }
+            if (state.pendingFollowUpTaskId) {
+              const pendingTask = state.tasks.find(
+                (t) => t.id === state.pendingFollowUpTaskId && !t.completed && !t.snoozeUntil
+              );
+              state.pendingFollowUpTaskId = null;
+              clearBgRepeatTimer();
+              if (pendingTask && state.orbState === 'idle') {
+                const name = getUserAddressName();
+                speakBengali(
+                  `${name ? name + ', ' : ''}${sanitizeTextForHumanSpeech(pendingTask.title)} কাজটি কি শেষ হয়েছে?`,
+                  { listenAfter: true, taskId: pendingTask.id }
+                );
+              }
+            }
             if (state.wakeLockEnabled && 'wakeLock' in navigator) {
               try {
                 state.wakeLockSentinel = await navigator.wakeLock.request('screen');
@@ -4801,19 +5107,48 @@
 
           if (state.settings.guardianArmed) {
             if ('Notification' in window && Notification.permission === 'default') {
-              Notification.requestPermission().catch(() => {});
+              Notification.requestPermission().then(() => renderBgModeButton()).catch(() => {});
+            }
+            if (state.settings.backgroundMode) {
+              startBackgroundKeepAlive();
             }
             // Unlock browser TTS audio context via user gesture
             const next = getNextPendingTask();
             const name = getUserAddressName();
             const intro = next
-              ? `${name ? name + ', ' : ''}হ্যান্ডস-ফ্রি অভিভাবক চালু হয়েছে। আপনার পরবর্তী কাজ ${getBengaliSpokenTime(next.time)} সময়ে ${sanitizeTextForHumanSpeech(next.title)}।`
+              ? `${name ? name + ', ' : ''}হ্যান্ডস-ফ্রি অভিভাবক ও ব্যাকগ্রাউন্ড রিমাইন্ডার চালু হয়েছে। আপনার পরবর্তী কাজ ${getBengaliSpokenTime(next.time)} সময়ে ${sanitizeTextForHumanSpeech(next.title)}।`
               : `${name ? name + ', ' : ''}হ্যান্ডস-ফ্রি অভিভাবক চালু হয়েছে। সময় হলেই আমি আপনার নাম ধরে ডেকে দেব।`;
             speakBengali(intro, { listenAfter: false });
           } else {
+            stopBackgroundKeepAlive();
             stopAllVoiceActivity();
           }
         });
+
+        if (els.bgModeBtn) {
+          els.bgModeBtn.addEventListener('click', () => {
+            unlockAudioContext();
+            state.settings.backgroundMode = !state.settings.backgroundMode;
+            if (state.settings.backgroundMode && !state.settings.guardianArmed) {
+              state.settings.guardianArmed = true;
+            }
+            saveState();
+            renderGuardianArmButton();
+            if (state.settings.backgroundMode) {
+              if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission().then(() => renderBgModeButton()).catch(() => {});
+              }
+              startBackgroundKeepAlive();
+              const name = getUserAddressName();
+              speakBengali(
+                `${name ? name + ', ' : ''}ব্যাকগ্রাউন্ড ও লক-স্ক্রিন মোড চালু হয়েছে। এখন অন্য অ্যাপে থাকলে বা স্ক্রিন বন্ধ থাকলেও সময়মতো ডেকে দেব।`,
+                { listenAfter: false }
+              );
+            } else {
+              stopBackgroundKeepAlive();
+            }
+          });
+        }
 
         function handleOrbPress() {
           unlockAudioContext();
@@ -4826,6 +5161,9 @@
             state.settings.guardianArmed = true;
             saveState();
             renderGuardianArmButton();
+            if (state.settings.backgroundMode) {
+              startBackgroundKeepAlive();
+            }
           }
           startHandsFreeListening();
         }
@@ -5113,12 +5451,18 @@
         if (els.userNameForm) {
           els.userNameForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            unlockAudioContext();
             const val = sanitizeTextForHumanSpeech(els.userNameInput.value || '').slice(0, 40);
             state.settings.userName = val;
             state.settings.namePromptDismissed = true;
             if (val && !state.settings.guardianArmed) {
               state.settings.guardianArmed = true;
+            }
+            unlockAudioContext();
+            if (state.settings.guardianArmed && state.settings.backgroundMode) {
+              startBackgroundKeepAlive();
+              if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission().then(() => renderBgModeButton()).catch(() => {});
+              }
             }
             saveState();
             renderAll();
@@ -5209,8 +5553,23 @@
             });
         })();
 
-        // Offline Service Worker Registration (registers /sw.js; gracefully handles standalone single-file fallback)
+        // Offline Service Worker Registration & Lock-Screen Notification Action Listener
+        function handleNotificationAction(action, taskId) {
+          if (!taskId) return;
+          if (action === 'done') {
+            completeTask(taskId, !document.hidden);
+          } else if (action === 'snooze') {
+            snoozeTask(taskId, 10, !document.hidden);
+          }
+        }
+
         if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.addEventListener('message', (event) => {
+            const payload = event.data || {};
+            if (payload.type === 'NOTIFICATION_ACTION') {
+              handleNotificationAction(payload.action, payload.taskId);
+            }
+          });
           window.addEventListener('load', () => {
             navigator.serviceWorker
               .register('/sw.js', { scope: '/' })
@@ -5221,6 +5580,19 @@
           });
         }
 
+        // Unthrottled Inline Web Worker Clock (resists Chrome background timer throttling)
+        function startScheduleWorker() {
+          if (!window.Worker) return;
+          try {
+            const workerCode = 'setInterval(function(){ postMessage("tick"); }, 1000);';
+            const blob = new Blob([workerCode], { type: 'application/javascript' });
+            const workerUrl = URL.createObjectURL(blob);
+            const worker = new Worker(workerUrl);
+            worker.onmessage = () => checkSchedule();
+            state.bgWorker = worker;
+          } catch (_) {}
+        }
+
         // =====================================================================
         // 12. BOOTSTRAP
         // =====================================================================
@@ -5228,6 +5600,20 @@
         updateOnlineStatus();
         refreshVoiceUI();
         renderAll();
+
+        // Handle launch from lock-screen notification action button (?action=done|snooze&taskId=...)
+        (function processLaunchNotificationAction() {
+          try {
+            const params = new URLSearchParams(window.location.search);
+            const action = params.get('action');
+            const taskId = params.get('taskId');
+            if (action && taskId) {
+              handleNotificationAction(action, taskId);
+              window.history.replaceState({}, '', '/');
+            }
+          } catch (_) {}
+        })();
+
         if (state.settings.guardianArmed && !audioUnlocked && els.audioUnlockBanner) {
           els.audioUnlockBanner.classList.remove('hidden');
           els.audioUnlockBanner.addEventListener('click', () => {
@@ -5244,6 +5630,7 @@
         if (!state.settings.userName && !state.settings.namePromptDismissed) {
           setTimeout(openUserNameModal, 350);
         }
+        startScheduleWorker();
         checkSchedule();
         setInterval(checkSchedule, 1000);
       })();
