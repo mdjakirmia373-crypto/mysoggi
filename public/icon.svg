@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" fill="none">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0b1326"/>
+      <stop offset="100%" stop-color="#050811"/>
+    </linearGradient>
+    <radialGradient id="auraGlow" cx="50%" cy="46%" r="48%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.34"/>
+      <stop offset="55%" stop-color="#6366f1" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="#050811" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="rimGrad" x1="40" y1="40" x2="472" y2="472" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.55"/>
+      <stop offset="50%" stop-color="#818cf8" stop-opacity="0.28"/>
+      <stop offset="100%" stop-color="#38bdf8" stop-opacity="0.45"/>
+    </linearGradient>
+    <linearGradient id="maGrad" x1="120" y1="130" x2="392" y2="380" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#7dd3fc"/>
+      <stop offset="48%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#818cf8"/>
+    </linearGradient>
+    <linearGradient id="waveGrad" x1="88" y1="190" x2="424" y2="330" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#818cf8" stop-opacity="0.85"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Squircle Backdrop -->
+  <rect x="16" y="16" width="480" height="480" rx="112" fill="url(#bgGrad)" stroke="url(#rimGrad)" stroke-width="6"/>
+  <circle cx="256" cy="246" r="200" fill="url(#auraGlow)"/>
+
+  <!-- Subtle Outer Precision Ring -->
+  <circle cx="256" cy="256" r="184" stroke="#38bdf8" stroke-opacity="0.16" stroke-width="3"/>
+
+  <!-- Left & Right Symmetric Voice Wave Arcs -->
+  <path d="M114 210C98 238 98 274 114 302" stroke="url(#waveGrad)" stroke-width="12" stroke-linecap="round" stroke-opacity="0.55"/>
+  <path d="M398 210C414 238 414 274 398 302" stroke="url(#waveGrad)" stroke-width="12" stroke-linecap="round" stroke-opacity="0.55"/>
+
+  <!-- MA Monogram Crest: Intertwined M Pillars + A Apex -->
+  <!-- M Outer Pillars & Twin Valley -->
+  <path
+    d="M148 344V186C148 168 170 160 182 174L256 260L330 174C342 160 364 168 364 186V344"
+    stroke="url(#maGrad)"
+    stroke-width="28"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+
+  <!-- Central A Guardian Roof Peak & Crossbar -->
+  <path
+    d="M196 344L256 146L316 344"
+    stroke="#f8fafc"
+    stroke-width="22"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M222 288H290"
+    stroke="#7dd3fc"
+    stroke-width="18"
+    stroke-linecap="round"
+  />
+
+  <!-- Assistant Spark / Voice Beacon Above Apex -->
+  <path
+    d="M256 88C258.5 104 268 113.5 284 116C268 118.5 258.5 128 256 144C253.5 128 244 118.5 228 116C244 113.5 253.5 104 256 88Z"
+    fill="#f8fafc"
+  />
+</svg>

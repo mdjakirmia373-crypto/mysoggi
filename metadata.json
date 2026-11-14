@@ -1,0 +1,6 @@
+{
+  "name": "My Assistant",
+  "description": "Hands-free Bengali voice-controlled personal routine guardian PWA with offline support.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": []
+}
