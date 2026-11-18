@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'my-assistant-v1.6.1';
+const CACHE_VERSION = 'my-assistant-v1.7.0';
 const CORE_ASSETS = [
   '/',
   '/index.html',
@@ -16,7 +16,16 @@ self.addEventListener('install', (event) => {
     caches
       .open(CACHE_VERSION)
       .then(async (cache) => {
-        await cache.addAll(CORE_ASSETS);
+        await Promise.allSettled(
+          CORE_ASSETS.map(async (assetUrl) => {
+            try {
+              const res = await fetch(new Request(assetUrl, { cache: 'reload' }));
+              if (res && res.ok) {
+                await cache.put(assetUrl, res);
+              }
+            } catch (_) {}
+          })
+        );
       })
       .then(() => self.skipWaiting())
   );
@@ -55,16 +64,16 @@ self.addEventListener('fetch', (event) => {
           return networkResponse;
         })
         .catch(async () => {
-          const cached = await caches.match('/index.html');
-          return cached || caches.match('/');
+          const cached = await caches.match('/index.html', { ignoreSearch: true });
+          return cached || caches.match('/', { ignoreSearch: true });
         })
     );
     return;
   }
 
-  // Stale-while-revalidate for static assets and cached external resources
+  // Cache-first / stale-while-revalidate for static assets & cached fonts
   event.respondWith(
-    caches.match(request).then((cachedResponse) => {
+    caches.match(request, { ignoreSearch: false }).then((cachedResponse) => {
       const fetchPromise = fetch(request)
         .then((networkResponse) => {
           if (

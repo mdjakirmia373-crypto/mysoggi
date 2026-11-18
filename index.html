@@ -2499,8 +2499,8 @@
           <div class="glass-card rounded-2xl p-4 sm:p-5 space-y-2.5">
             <h2 class="text-sm font-semibold text-slate-100">ভয়েস কমান্ড গাইড · Voice Commands</h2>
             <div class="text-xs text-slate-400 space-y-1.5 leading-relaxed">
-              <div><span class="text-emerald-300 font-medium">কাজ শেষ করতে বলুন:</span> "খেয়েছি", "হ্যাঁ", "করেছি", "হয়েছে", "Done"</div>
-              <div><span class="text-amber-300 font-medium">পরে করতে বলুন:</span> "পরে", "৫ মিনিট পর", "১০ মিনিট পর", "একটু পর"</div>
+              <div><span class="text-emerald-300 font-medium">কাজ শেষ করতে বলুন:</span> "হয়ে গেছে", "ঠিক আছে", "ওকে", "খেয়েছি", "করেছি", "Done"</div>
+              <div><span class="text-amber-300 font-medium">পরে করতে বলুন:</span> "পরে", "৫ মিনিট পর", "১০ মিনিট পর", "এখন না", "ব্যস্ত"</div>
               <div><span class="text-sky-300 font-medium">নাম সেট করতে বলুন:</span> "আমার নাম রাহিম" বা "আমাকে করিম ডাকো"</div>
               <div><span class="text-sky-300 font-medium">নতুন কাজ যোগ করতে Orb-এ ট্যাপ করে বলুন:</span> "নতুন কাজ রাত ৯টায় ওষুধ খাওয়া"</div>
             </div>
@@ -3215,10 +3215,10 @@
 
         <!-- Honest Mobile Usage Guide -->
         <div class="rounded-2xl bg-slate-950/60 border border-slate-800/80 p-3.5 space-y-1.5 text-[11px] text-slate-300 leading-relaxed">
-          <div class="font-semibold text-sky-300">মোবাইলে সম্পূর্ণ নিরবচ্ছিন্নভাবে চালাতে ৩টি বিষয় মনে রাখুন:</div>
-          <p>• প্রথমবার <strong>Install App</strong> দিয়ে হোম স্ক্রিনে ইনস্টল করে নিন — এরপর ইন্টারনেট ছাড়াও চলবে।</p>
-          <p>• অন্য অ্যাপ চালাতে চাইলে বা ফোন পকেটে রাখতে চাইলে <strong>হোম/লক বাটন চাপুন</strong>, কিন্তু রিসেন্ট লিস্ট থেকে সোয়াইপ করে অ্যাপটি পুরো কেটে দেবেন না।</p>
-          <p>• ফোনের <strong>Settings → Apps → Chrome / MyAssistant → Battery</strong> অপশনে গিয়ে <strong>Unrestricted</strong> করে দিন।</p>
+          <div class="font-semibold text-sky-300">মোবাইলে অফলাইন ও ব্যাকগ্রাউন্ড নিরবচ্ছিন্ন রাখতে ৩টি বিষয় মনে রাখুন:</div>
+          <p>• প্রথমবার <strong>Install App</strong> দিয়ে হোম স্ক্রিনে ইনস্টল করে নিন — এরপর ইন্টারনেট ছাড়াও ড্যাশবোর্ড, অ্যালার্ম ও বাংলা কথা বলা চলবে।</p>
+          <p>• অন্য অ্যাপে যেতে বা ফোন পকেটে রাখতে <strong>হোম/লক বাটন চাপুন</strong>, রিসেন্ট লিস্ট থেকে সোয়াইপ করে অ্যাপটি পুরো কেটে দেবেন না।</p>
+          <p>• ফোনের <strong>Battery → Unrestricted</strong> করে রাখুন এবং ইন্টারনেট ছাড়া কথা শোনার জন্য <strong>Google Settings → Offline speech recognition → বাংলা</strong> ডাউনলোড করে নিতে পারেন।</p>
         </div>
       </div>
     </div>
@@ -3301,6 +3301,11 @@
           speechSessionId: 0,
           voices: [],
           bgKeepAliveActive: false,
+          intentionalBgPause: false,
+          bgAudioListenersBound: false,
+          bgLockRelease: null,
+          silentAudioHeartbeat: null,
+          listenRetryCount: 0,
           bgWorker: null,
           lastScheduleCheckMs: 0,
           pendingFollowUpTaskId: null,
@@ -3479,19 +3484,19 @@
           const callName = name ? ` ${name}` : '';
           if (mood === 'strict') {
             return pickRandomLine([
-              `বাহ${callName}, বেশ ভালো। ${cleanTitle} সময়মতো শেষ করার জন্য ধন্যবাদ। এভাবেই নিয়ম মেনে চলবেন।`,
-              `চমৎকার${callName}। ${cleanTitle} সম্পন্ন হয়েছে। পরের কাজগুলোর দিকেও খেয়াল রাখবেন।`
+              `ঠিক আছে${callName}, বেশ ভালো। ${cleanTitle} সময়মতো সম্পন্ন হয়েছে। পরের কাজগুলোর দিকেও খেয়াল রাখবেন।`,
+              `চমৎকার${callName}। ${cleanTitle} সম্পন্ন হিসেবে সেভ করা হলো।`
             ]);
           }
           if (mood === 'friendly') {
             return pickRandomLine([
-              `দারুণ${callName || ' দোস্ত'}! ${cleanTitle} শেষ করে ফেলেছো। এভাবেই এগিয়ে যাও!`,
-              `সাবাশ${callName || ' বন্ধু'}! ${cleanTitle} একদম ঠিক সময়ে শেষ হয়েছে।`
+              `ওকে${callName || ' বন্ধু'}, দারুণ! ${cleanTitle} সম্পন্ন হয়ে গেছে। এভাবেই চালিয়ে যাও!`,
+              `সাবাশ${callName || ' দোস্ত'}! ${cleanTitle} ঠিক সময়ে শেষ হয়েছে।`
             ]);
           }
           return pickRandomLine([
-            `খুব ভালো${callName}! ${cleanTitle} শেষ করেছো শুনে সত্যিই ভালো লাগলো। নিজের যত্ন নিও।`,
-            `দারুণ হয়েছে${callName}! ${cleanTitle} সময়মতো হয়ে গেছে। এখন নিশ্চিন্তে একটু বিশ্রাম নাও।`
+            `ঠিক আছে${callName}, ${cleanTitle} সম্পন্ন হিসেবে সেভ করা হয়েছে। নিজের যত্ন নিও।`,
+            `খুব ভালো${callName}! ${cleanTitle} হয়ে গেছে শুনে নিশ্চিন্ত হলাম।`
           ]);
         }
 
@@ -3696,10 +3701,88 @@
           } catch (_) {}
         }
 
+        function acquireBackgroundWebLock() {
+          if (state.bgLockRelease || !navigator.locks || typeof navigator.locks.request !== 'function') return;
+          try {
+            navigator.locks
+              .request(
+                'my_assistant_bg_keepalive',
+                { mode: 'exclusive', ifAvailable: true },
+                (lock) => {
+                  if (!lock) return;
+                  return new Promise((resolve) => {
+                    state.bgLockRelease = resolve;
+                  });
+                }
+              )
+              .catch(() => {});
+          } catch (_) {}
+        }
+
+        function releaseBackgroundWebLock() {
+          if (typeof state.bgLockRelease === 'function') {
+            try {
+              state.bgLockRelease();
+            } catch (_) {}
+            state.bgLockRelease = null;
+          }
+        }
+
+        function startSilentAudioHeartbeat() {
+          try {
+            const Ctx = window.AudioContext || window.webkitAudioContext;
+            if (!Ctx) return;
+            if (!audioCtx) audioCtx = new Ctx();
+            if (audioCtx.state === 'suspended') {
+              audioCtx.resume().catch(() => {});
+            }
+            if (state.silentAudioHeartbeat) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(30, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.00001, audioCtx.currentTime);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            state.silentAudioHeartbeat = { osc, gain };
+          } catch (_) {}
+        }
+
+        function stopSilentAudioHeartbeat() {
+          if (!state.silentAudioHeartbeat) return;
+          try {
+            state.silentAudioHeartbeat.osc.stop();
+            state.silentAudioHeartbeat.osc.disconnect();
+            state.silentAudioHeartbeat.gain.disconnect();
+          } catch (_) {}
+          state.silentAudioHeartbeat = null;
+        }
+
+        function bindBackgroundAudioSelfHeal(audio) {
+          if (!audio || state.bgAudioListenersBound) return;
+          state.bgAudioListenersBound = true;
+          const recoverIfNeeded = () => {
+            if (state.intentionalBgPause) return;
+            if (!state.settings.guardianArmed || !state.settings.backgroundMode) return;
+            setTimeout(() => {
+              if (!state.intentionalBgPause && state.settings.guardianArmed && state.settings.backgroundMode) {
+                startBackgroundKeepAlive();
+              }
+            }, 400);
+          };
+          audio.addEventListener('pause', recoverIfNeeded);
+          audio.addEventListener('ended', recoverIfNeeded);
+        }
+
         function startBackgroundKeepAlive() {
           if (!state.settings.guardianArmed || !state.settings.backgroundMode) return;
           const audio = els.bgKeepAliveAudio;
           if (!audio) return;
+          state.intentionalBgPause = false;
+          bindBackgroundAudioSelfHeal(audio);
+          acquireBackgroundWebLock();
+          startSilentAudioHeartbeat();
           if (!audio.src) audio.src = createSilentWavDataUrl();
           audio.volume = 0.01;
           audio.loop = true;
@@ -3726,6 +3809,9 @@
         }
 
         function stopBackgroundKeepAlive() {
+          state.intentionalBgPause = true;
+          stopSilentAudioHeartbeat();
+          releaseBackgroundWebLock();
           const audio = els.bgKeepAliveAudio;
           if (audio) {
             try {
@@ -3859,7 +3945,13 @@
           if (/nabanita|tanishaa|pradeep|bashkar/.test(name)) score += 60;
           if (/google/.test(name)) score += 85;
           if (/microsoft|apple|siri|samsung/.test(name)) score += 40;
-          if (!voice.localService && navigator.onLine) score += 20;
+          if (navigator.onLine) {
+            if (!voice.localService) score += 20;
+          } else {
+            // Strictly prioritize local device voices offline so network TTS never fails silently
+            if (voice.localService) score += 250;
+            else score -= 250;
+          }
           if (/espeak|festival|flite|mbrola|pico/.test(name)) score -= 140;
 
           return score;
@@ -3932,7 +4024,10 @@
           const ranked = getRankedBengaliVoices();
           if (state.settings.voiceURI && state.settings.voiceURI !== 'auto') {
             const custom = ranked.find((v) => v.voiceURI === state.settings.voiceURI);
-            if (custom) return custom;
+            if (custom && (navigator.onLine || custom.localService)) return custom;
+          }
+          if (!navigator.onLine) {
+            return ranked.find((v) => v.localService) || ranked[0] || null;
           }
           return ranked[0] || null;
         }
@@ -4188,10 +4283,20 @@
           els.speechCompatNote.classList.remove('hidden');
         }
 
-        function startHandsFreeListening() {
+        function startHandsFreeListening({ isRetry = false } = {}) {
           if (!SpeechRecognitionAPI) {
             setOrbState('idle', 'ভয়েস রিকগনিশন সাপোর্ট নেই — নিচের বাটন ব্যবহার করুন');
             return;
+          }
+
+          if (document.hidden || document.visibilityState === 'hidden') {
+            if (state.activeTaskId) state.pendingFollowUpTaskId = state.activeTaskId;
+            setOrbState('idle');
+            return;
+          }
+
+          if (!isRetry) {
+            state.listenRetryCount = 0;
           }
 
           if (state.recognition) {
@@ -4207,11 +4312,15 @@
             recognition.maxAlternatives = 3;
 
             let finalTranscript = '';
+            let hadNetworkError = false;
 
             recognition.onstart = () => {
-              setOrbState('listening', 'আপনার উত্তর শুনছি...');
+              const promptMsg = isRetry
+                ? 'এখনও শুনছি — বলুন "হয়ে গেছে", "ঠিক আছে", "ওকে" বা "পরে"...'
+                : 'আপনার উত্তর শুনছি — বলুন "হয়ে গেছে", "ঠিক আছে", "ওকে"...';
+              setOrbState('listening', promptMsg);
               els.userTranscriptRow.classList.remove('hidden');
-              els.userTranscriptText.textContent = 'শুনছি...';
+              els.userTranscriptText.textContent = isRetry ? 'আবার শুনছি...' : 'শুনছি...';
             };
 
             recognition.onresult = (event) => {
@@ -4234,8 +4343,21 @@
             recognition.onerror = (event) => {
               state.recognition = null;
               if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-                setOrbState('idle', 'মাইক্রোফোন অনুমতি প্রয়োজন');
+                setOrbState('idle', 'মাইক্রোফোন অনুমতি প্রয়োজন — সিস্টেম চেকআপ থেকে Allow করুন');
+              } else if (event.error === 'network') {
+                hadNetworkError = true;
+                setOrbState(
+                  'idle',
+                  !navigator.onLine
+                    ? 'অফলাইনে ভয়েস শুনতে ফোনের Offline Bangla Pack প্রয়োজন — নিচের বাটন চাপুন'
+                    : 'নেটওয়ার্ক সমস্যা — আবার বলতে Orb-এ ট্যাপ করুন'
+                );
               } else if (event.error === 'no-speech') {
+                if (!isRetry && state.activeTaskId && !document.hidden && state.listenRetryCount < 1) {
+                  state.listenRetryCount += 1;
+                  setTimeout(() => startHandsFreeListening({ isRetry: true }), 260);
+                  return;
+                }
                 setOrbState('idle', 'কোনো উত্তর শোনা যায়নি — আবার বলতে Orb-এ ট্যাপ করুন');
               } else {
                 setOrbState('idle');
@@ -4244,9 +4366,14 @@
 
             recognition.onend = () => {
               state.recognition = null;
+              if (hadNetworkError) return;
               const heard = finalTranscript.trim();
               if (heard) {
+                state.listenRetryCount = 0;
                 handleSpokenReply(heard);
+              } else if (!isRetry && state.activeTaskId && !document.hidden && state.listenRetryCount < 1 && state.orbState === 'listening') {
+                state.listenRetryCount += 1;
+                setTimeout(() => startHandsFreeListening({ isRetry: true }), 260);
               } else if (state.orbState === 'listening') {
                 setOrbState('idle');
               }
@@ -4389,28 +4516,28 @@
             state.tasks.find((t) => t.id === state.activeTaskId && !t.completed) ||
             getNextPendingTask();
 
-          // 3. Smart Completion Match
+          // 3. Check Negative / Delay / Snooze intent FIRST so "ঠিক আছে, ১০ মিনিট পর" snoozes cleanly
+          const isSnoozeOrNegative =
+            /পরে|একটু পর|কিছুক্ষণ পর|মিনিট|ব্যস্ত|থাক|সময় লাগবে|সময় দাও|এখন না|হয়নি|হয়নি|করিনি|করব না|পারিনি|যাইনি|খাইনি|নেইনি|বাকি|অপেক্ষা|থামো|থাম|^\s*না\s*$|^\s*না\s|\sনা\s*$|snooze|later|wait|minutes|not yet|busy|^\s*no\b/i.test(
+              lower
+            );
+
+          // 4. Smart Affirmation / Completion Match
           const isComplete =
-            /খেয়েছি|খেয়েছি|হ্যাঁ|হয়েছে|হয়েছে|করেছি|শেষ|সারা|ডান|ওকে|জ্বি|জি|done|yes|completed|finished|ok|taken/.test(
+            /হয়ে গেছে|হয়ে গেছে|হয়েছে|হয়েছে|ঠিক আছে|ওকে|আচ্ছা|হুম|হু|হ্যাঁ|জ্বি|জি|একদম|অবশ্যই|নিশ্চয়|কমপ্লিট|সম্পন্ন|শেষ|সারা|ডান|রেডি|প্রস্তুত|করেছি|করে ফেলেছি|করলাম|খেয়েছি|খেয়েছি|খেলাম|নিয়েছি|নিলাম|সেরেছি|যাচ্ছি|বের হচ্ছি|ধন্যবাদ|done|yes|yeah|yep|ok|okay|alright|fine|completed|finished|ready|taken/i.test(
               lower
             );
 
-          // 4. Smart Snooze / Delay Match
-          const isSnooze =
-            /পরে|মিনিট|ব্যস্ত|থাক|সময়|এখন না|না|করিনি|snooze|later|wait|minutes|not yet|no/.test(
-              lower
-            );
-
-          if (isComplete && targetTask) {
-            completeTask(targetTask.id, true);
-            return;
-          }
-
-          if (isSnooze && targetTask) {
+          if (isSnoozeOrNegative && targetTask) {
             const minMatch = normalized.match(/(\d{1,2})\s*(?:মিনিট|min|minute)?/);
             let minutes = minMatch ? parseInt(minMatch[1], 10) : 10;
             if (isNaN(minutes) || minutes < 1 || minutes > 120) minutes = 10;
             snoozeTask(targetTask.id, minutes, true);
+            return;
+          }
+
+          if (isComplete && targetTask) {
+            completeTask(targetTask.id, true);
             return;
           }
 
@@ -4741,11 +4868,11 @@
               break;
             }
 
-            // Check exact scheduled HH:MM or 5-minute mobile wake-up catch-up window
+            // Check exact scheduled HH:MM or 15-minute mobile wake-up catch-up window
             if (!task.triggeredToday && !task.snoozeUntil) {
               const taskMinutes = timeToMinutes(task.time);
               const diffMin = nowMinutes - taskMinutes;
-              if (task.time === hhmm || (diffMin >= 0 && diffMin <= 5)) {
+              if (task.time === hhmm || (diffMin >= 0 && diffMin <= 15)) {
                 triggerTaskVoice(task.id, { fromSchedule: true });
                 break;
               }
@@ -5305,6 +5432,14 @@
         }
 
         document.addEventListener('visibilitychange', async () => {
+          if (document.visibilityState === 'hidden') {
+            if (state.settings.guardianArmed && state.settings.backgroundMode) {
+              updateMediaSessionMetadata();
+              startBackgroundKeepAlive();
+            }
+            return;
+          }
+
           if (document.visibilityState === 'visible') {
             renderTodayDate();
             checkSchedule();
@@ -5321,8 +5456,8 @@
                 speakBengali(buildReminderSpeech(pendingTask), {
                   listenAfter: true,
                   taskId: pendingTask.id,
-                  repeatCount: getReminderRepeatCount(),
-                  repeatGapMs: 680,
+                  repeatCount: 1,
+                  repeatGapMs: 500,
                 });
               }
             }
@@ -5354,6 +5489,8 @@
             els.networkIconOffline.classList.remove('hidden');
             els.networkLabel.textContent = 'Offline Mode';
           }
+          if (typeof refreshVoiceUI === 'function') refreshVoiceUI();
+          if (typeof refreshSystemReadinessUI === 'function') refreshSystemReadinessUI();
         }
 
         window.addEventListener('online', updateOnlineStatus);
@@ -5836,12 +5973,13 @@
         // Embedded fallback manifest if /manifest.webmanifest is absent in single-file hosting
         (function ensureManifestFallback() {
           const link = document.getElementById('pwa-manifest-link');
-          if (!link) return;
-          fetch('/manifest.webmanifest', { method: 'HEAD' })
+          if (!link || !navigator.onLine) return;
+          fetch('/manifest.webmanifest', { method: 'GET', cache: 'force-cache' })
             .then((res) => {
               if (!res.ok) throw new Error('missing');
             })
             .catch(() => {
+              if (!navigator.onLine) return;
               const inlineManifest = {
                 id: '/',
                 name: 'My Assistant',
@@ -5972,9 +6110,12 @@
           }
 
           if (els.sysOfflineStatus && els.sysOfflineBadge) {
-            const voiceText = bnVoice ? `${bnVoice.name}` : 'ডিফল্ট সিস্টেম বাংলা ভয়েস';
+            const voiceText = bnVoice
+              ? `${bnVoice.name}${bnVoice.localService ? ' (Offline)' : ' (HD Online)'}`
+              : 'ডিফল্ট সিস্টেম বাংলা ভয়েস';
+            const localCapable = !bnVoice || bnVoice.localService;
             els.sysOfflineStatus.textContent = `${voiceText} · ${swReady ? 'অফলাইন ক্যাশ প্রস্তুত' : 'অফলাইন ক্যাশ লোড হচ্ছে...'}`;
-            els.sysOfflineBadge.textContent = swReady ? 'অফলাইন রেডি' : 'স্ট্যান্ডবাই';
+            els.sysOfflineBadge.textContent = swReady && localCapable ? 'অফলাইন রেডি' : swReady ? 'ক্যাশ রেডি' : 'স্ট্যান্ডবাই';
             els.sysOfflineBadge.className = swReady
               ? 'text-xs font-medium text-emerald-300 shrink-0'
               : 'text-xs font-medium text-sky-300 shrink-0';
