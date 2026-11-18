@@ -418,6 +418,12 @@
   .h-px {
     height: 1px;
   }
+  .max-h-\[90vh\] {
+    max-height: 90vh;
+  }
+  .w-2 {
+    width: calc(var(--spacing) * 2);
+  }
   .w-3 {
     width: calc(var(--spacing) * 3);
   }
@@ -599,6 +605,19 @@
   .gap-y-0\.5 {
     row-gap: calc(var(--spacing) * 0.5);
   }
+  :where(.divide-y > :not(:last-child)) {
+    --tw-divide-y-reverse: 0;
+    border-bottom-style: var(--tw-border-style);
+    border-top-style: var(--tw-border-style);
+    border-top-width: calc(1px * var(--tw-divide-y-reverse));
+    border-bottom-width: calc(1px * calc(1 - var(--tw-divide-y-reverse)));
+  }
+  :where(.divide-slate-800\/80 > :not(:last-child)) {
+    border-color: color-mix(in srgb, oklch(27.9% 0.041 260.031) 80%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      border-color: color-mix(in oklab, var(--color-slate-800) 80%, transparent);
+    }
+  }
   .self-end {
     align-self: flex-end;
   }
@@ -609,6 +628,9 @@
   }
   .overflow-hidden {
     overflow: hidden;
+  }
+  .overflow-y-auto {
+    overflow-y: auto;
   }
   .rounded-2xl {
     border-radius: var(--radius-2xl);
@@ -783,6 +805,9 @@
   .bg-\[\#090e1a\] {
     background-color: #090e1a;
   }
+  .bg-amber-400 {
+    background-color: var(--color-amber-400);
+  }
   .bg-amber-500 {
     background-color: var(--color-amber-500);
   }
@@ -803,6 +828,9 @@
     @supports (color: color-mix(in lab, red, red)) {
       background-color: color-mix(in oklab, var(--color-amber-500) 20%, transparent);
     }
+  }
+  .bg-emerald-400 {
+    background-color: var(--color-emerald-400);
   }
   .bg-emerald-500 {
     background-color: var(--color-emerald-500);
@@ -893,6 +921,12 @@
   }
   .bg-slate-950 {
     background-color: var(--color-slate-950);
+  }
+  .bg-slate-950\/60 {
+    background-color: color-mix(in srgb, oklch(12.9% 0.042 264.695) 60%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      background-color: color-mix(in oklab, var(--color-slate-950) 60%, transparent);
+    }
   }
   .bg-slate-950\/65 {
     background-color: color-mix(in srgb, oklch(12.9% 0.042 264.695) 65%, transparent);
@@ -1402,6 +1436,9 @@
     .sm\:inline-flex {
       display: inline-flex;
     }
+    .sm\:max-w-lg {
+      max-width: var(--container-lg);
+    }
     .sm\:max-w-md {
       max-width: var(--container-md);
     }
@@ -1507,6 +1544,11 @@
   inherits: false;
 }
 @property --tw-space-y-reverse {
+  syntax: "*";
+  inherits: false;
+  initial-value: 0;
+}
+@property --tw-divide-y-reverse {
   syntax: "*";
   inherits: false;
   initial-value: 0;
@@ -1766,6 +1808,7 @@
       --tw-skew-x: initial;
       --tw-skew-y: initial;
       --tw-space-y-reverse: 0;
+      --tw-divide-y-reverse: 0;
       --tw-border-style: solid;
       --tw-gradient-position: initial;
       --tw-gradient-from: #0000;
@@ -2358,6 +2401,15 @@
                   class="btn-touch px-3.5 py-2 rounded-xl text-xs font-medium border transition-colors whitespace-nowrap"
                 >
                   ব্যাকগ্রাউন্ড ও লক-স্ক্রিন: চালু
+                </button>
+                <button
+                  id="open-system-modal-btn"
+                  type="button"
+                  title="সব সিস্টেম একসাথে চালু, পারমিশন ও লাইভ টেস্ট করুন"
+                  class="btn-touch inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/70 text-slate-200 transition-colors whitespace-nowrap"
+                >
+                  <span id="system-ready-dot" class="w-2 h-2 rounded-full bg-amber-400"></span>
+                  <span>সিস্টেম চেকআপ ও টেস্ট</span>
                 </button>
               </div>
               <p id="bg-mode-hint" class="text-[11px] text-slate-400 max-w-md mx-auto leading-relaxed px-2">
@@ -3042,6 +3094,109 @@
       </div>
     </div>
 
+    <!-- System Readiness & One-Tap Activation Modal -->
+    <div
+      id="system-setup-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="system-modal-title"
+      class="fixed inset-0 z-50 hidden items-end sm:items-center justify-center bg-slate-950/75 backdrop-blur-sm p-0 sm:p-4"
+    >
+      <div class="glass-card w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl p-6 space-y-5 bg-slate-900/95 max-h-[90vh] overflow-y-auto">
+        <div class="w-10 h-1 bg-slate-700 rounded-full mx-auto sm:hidden" aria-hidden="true"></div>
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <h2 id="system-modal-title" class="font-display text-lg font-semibold text-slate-50">
+              সিস্টেম চেকআপ ও সম্পূর্ণ সেটআপ
+            </h2>
+            <p class="text-xs text-slate-400 mt-0.5">
+              অফলাইন, লক-স্ক্রিন ও ভয়েস উত্তর সঠিকভাবে চলার জন্য সব সিস্টেম এখান থেকে চালু করুন
+            </p>
+          </div>
+          <button
+            id="close-system-modal-btn"
+            type="button"
+            aria-label="Close system readiness modal"
+            class="btn-touch rounded-xl text-slate-400 hover:text-slate-100 hover:bg-slate-800/70 transition-colors"
+          >
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+
+        <button
+          id="activate-all-systems-btn"
+          type="button"
+          class="btn-touch w-full rounded-2xl px-4 py-3 text-sm font-semibold bg-sky-500 hover:bg-sky-400 text-slate-950 transition-colors"
+        >
+          ১-ট্যাপে সব সিস্টেম চালু ও টেস্ট করুন
+        </button>
+
+        <!-- Diagnostic Checklist -->
+        <div class="divide-y divide-slate-800/80 rounded-2xl bg-slate-950/75 border border-slate-800/80">
+          <div class="p-3.5 flex items-center justify-between gap-3">
+            <div class="min-w-0">
+              <div class="text-xs font-semibold text-slate-100">১. ব্যাকগ্রাউন্ড অডিও ও MediaSession</div>
+              <div id="sys-audio-status" class="text-[11px] text-slate-400 mt-0.5">চেক করা হচ্ছে...</div>
+            </div>
+            <button
+              id="sys-test-audio-btn"
+              type="button"
+              class="btn-touch px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 transition-colors whitespace-nowrap"
+            >
+              সাউন্ড টেস্ট
+            </button>
+          </div>
+
+          <div class="p-3.5 flex items-center justify-between gap-3">
+            <div class="min-w-0">
+              <div class="text-xs font-semibold text-slate-100">২. লক-স্ক্রিন নোটিফিকেশন ও ভাইব্রেশন</div>
+              <div id="sys-notif-status" class="text-[11px] text-slate-400 mt-0.5">চেক করা হচ্ছে...</div>
+            </div>
+            <button
+              id="sys-test-notif-btn"
+              type="button"
+              class="btn-touch px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 transition-colors whitespace-nowrap"
+            >
+              নোটিফিকেশন টেস্ট
+            </button>
+          </div>
+
+          <div class="p-3.5 flex items-center justify-between gap-3">
+            <div class="min-w-0">
+              <div class="text-xs font-semibold text-slate-100">৩. মাইক্রোফোন (হ্যান্ডস-ফ্রি বাংলা উত্তর)</div>
+              <div id="sys-mic-status" class="text-[11px] text-slate-400 mt-0.5">চেক করা হচ্ছে...</div>
+            </div>
+            <button
+              id="sys-test-mic-btn"
+              type="button"
+              class="btn-touch px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 transition-colors whitespace-nowrap"
+            >
+              মাইক চালু করুন
+            </button>
+          </div>
+
+          <div class="p-3.5 flex items-center justify-between gap-3">
+            <div class="min-w-0">
+              <div class="text-xs font-semibold text-slate-100">৪. বাংলা কণ্ঠস্বর ও অফলাইন ক্যাশ (PWA)</div>
+              <div id="sys-offline-status" class="text-[11px] text-slate-400 mt-0.5">চেক করা হচ্ছে...</div>
+            </div>
+            <span id="sys-offline-badge" class="text-xs font-medium text-emerald-300 shrink-0">সক্রিয়</span>
+          </div>
+        </div>
+
+        <!-- Honest Mobile Usage Guide -->
+        <div class="rounded-2xl bg-slate-950/60 border border-slate-800/80 p-3.5 space-y-1.5 text-[11px] text-slate-300 leading-relaxed">
+          <div class="font-semibold text-sky-300">মোবাইলে সম্পূর্ণ নিরবচ্ছিন্নভাবে চালাতে ৩টি বিষয় মনে রাখুন:</div>
+          <p>• প্রথমবার <strong>Install App</strong> দিয়ে হোম স্ক্রিনে ইনস্টল করে নিন — এরপর ইন্টারনেট ছাড়াও চলবে।</p>
+          <p>• অন্য অ্যাপ চালাতে চাইলে বা ফোন পকেটে রাখতে চাইলে <strong>হোম/লক বাটন চাপুন</strong>, কিন্তু রিসেন্ট লিস্ট থেকে সোয়াইপ করে অ্যাপটি পুরো কেটে দেবেন না।</p>
+          <p>• ফোনের <strong>Settings → Apps → Chrome / MyAssistant → Battery</strong> অপশনে গিয়ে <strong>Unrestricted</strong> করে দিন।</p>
+        </div>
+      </div>
+    </div>
+
     <audio id="bg-keepalive-audio" loop playsinline preload="auto" class="hidden"></audio>
 
     <script>
@@ -3103,6 +3258,7 @@
           wakeLockEnabled: false,
           speechWatchdog: null,
           speechQueueTimer: null,
+          speechResumePulse: null,
           speechSessionId: 0,
           voices: [],
           bgKeepAliveActive: false,
@@ -3110,6 +3266,7 @@
           lastScheduleCheckMs: 0,
           pendingFollowUpTaskId: null,
           bgRepeatTimer: null,
+          micPermissionState: 'unknown',
         };
 
         function getAppNow() {
@@ -3372,6 +3529,19 @@
           guardianArmBtn: document.getElementById('guardian-arm-btn'),
           bgModeBtn: document.getElementById('bg-mode-btn'),
           bgModeHint: document.getElementById('bg-mode-hint'),
+          openSystemModalBtn: document.getElementById('open-system-modal-btn'),
+          systemReadyDot: document.getElementById('system-ready-dot'),
+          systemSetupModal: document.getElementById('system-setup-modal'),
+          closeSystemModalBtn: document.getElementById('close-system-modal-btn'),
+          activateAllSystemsBtn: document.getElementById('activate-all-systems-btn'),
+          sysAudioStatus: document.getElementById('sys-audio-status'),
+          sysNotifStatus: document.getElementById('sys-notif-status'),
+          sysMicStatus: document.getElementById('sys-mic-status'),
+          sysOfflineStatus: document.getElementById('sys-offline-status'),
+          sysOfflineBadge: document.getElementById('sys-offline-badge'),
+          sysTestAudioBtn: document.getElementById('sys-test-audio-btn'),
+          sysTestNotifBtn: document.getElementById('sys-test-notif-btn'),
+          sysTestMicBtn: document.getElementById('sys-test-mic-btn'),
           bgKeepAliveAudio: document.getElementById('bg-keepalive-audio'),
           activeTaskIndicator: document.getElementById('active-task-indicator'),
           guardianSpeechLog: document.getElementById('guardian-speech-log'),
@@ -3616,8 +3786,19 @@
           } catch (_) {}
         }
 
+        function handleFirstOrResumeGesture() {
+          const needsResume =
+            !audioUnlocked ||
+            (audioCtx && audioCtx.state === 'suspended') ||
+            (state.settings.guardianArmed && state.settings.backgroundMode && !state.bgKeepAliveActive);
+          if (needsResume) {
+            unlockAudioContext();
+            if (typeof refreshSystemReadinessUI === 'function') refreshSystemReadinessUI();
+          }
+        }
+
         ['pointerdown', 'keydown'].forEach((evt) => {
-          document.addEventListener(evt, unlockAudioContext, { once: true, passive: true });
+          document.addEventListener(evt, handleFirstOrResumeGesture, { passive: true });
         });
 
         function scoreVoiceNaturalness(voice) {
@@ -3751,6 +3932,10 @@
             clearTimeout(state.speechQueueTimer);
             state.speechQueueTimer = null;
           }
+          if (state.speechResumePulse) {
+            clearInterval(state.speechResumePulse);
+            state.speechResumePulse = null;
+          }
           if ('speechSynthesis' in window) {
             window.speechSynthesis.cancel();
           }
@@ -3824,10 +4009,26 @@
             clearTimeout(state.speechQueueTimer);
             state.speechQueueTimer = null;
           }
+          if (state.speechResumePulse) {
+            clearInterval(state.speechResumePulse);
+            state.speechResumePulse = null;
+          }
           window.speechSynthesis.cancel();
           if (window.speechSynthesis.paused) {
             window.speechSynthesis.resume();
           }
+
+          // Chrome desktop & mobile bug guard: keep speechSynthesis unpaused during longer utterances
+          state.speechResumePulse = setInterval(() => {
+            if (sessionId !== state.speechSessionId) {
+              clearInterval(state.speechResumePulse);
+              state.speechResumePulse = null;
+              return;
+            }
+            if (window.speechSynthesis.paused) {
+              window.speechSynthesis.resume();
+            }
+          }, 3500);
 
           const moodCfg = MOOD_META[state.settings.mood] || MOOD_META.caring;
           const paceMult = PACE_MULTIPLIER[state.settings.voicePace] || PACE_MULTIPLIER.natural;
@@ -3841,6 +4042,10 @@
             if (state.speechWatchdog) {
               clearTimeout(state.speechWatchdog);
               state.speechWatchdog = null;
+            }
+            if (state.speechResumePulse) {
+              clearInterval(state.speechResumePulse);
+              state.speechResumePulse = null;
             }
             if (listenAfter) {
               // Brief 260ms acoustic echo guard before opening microphone without touch
@@ -4535,6 +4740,7 @@
               'ব্যাকগ্রাউন্ড মোড বন্ধ — কেবল অ্যাপ খোলা অবস্থায় রিমাইন্ডার বাজবে।';
             els.bgModeHint.className = 'text-[11px] text-slate-400 max-w-md mx-auto leading-relaxed px-2';
           }
+          if (typeof refreshSystemReadinessUI === 'function') refreshSystemReadinessUI();
         }
 
         function renderGuardianArmButton() {
@@ -5593,6 +5799,231 @@
           } catch (_) {}
         }
 
+        // System Readiness & 1-Tap Full Activation Handlers
+        async function checkMicPermissionStatus() {
+          if (navigator.permissions && navigator.permissions.query) {
+            try {
+              const status = await navigator.permissions.query({ name: 'microphone' });
+              state.micPermissionState = status.state;
+              status.onchange = () => {
+                state.micPermissionState = status.state;
+                refreshSystemReadinessUI();
+              };
+            } catch (_) {}
+          }
+          refreshSystemReadinessUI();
+        }
+
+        function refreshSystemReadinessUI() {
+          const notifPerm = 'Notification' in window ? Notification.permission : 'unsupported';
+          const bgReady = state.settings.guardianArmed && state.settings.backgroundMode && state.bgKeepAliveActive;
+          const swReady = 'serviceWorker' in navigator && !!navigator.serviceWorker.controller;
+          const bnVoice = pickBengaliVoice();
+
+          if (els.systemReadyDot) {
+            const allGood = bgReady && notifPerm === 'granted' && state.micPermissionState !== 'denied';
+            els.systemReadyDot.className = allGood
+              ? 'w-2 h-2 rounded-full bg-emerald-400'
+              : 'w-2 h-2 rounded-full bg-amber-400';
+          }
+
+          if (els.sysAudioStatus) {
+            if (bgReady) {
+              els.sysAudioStatus.textContent = 'সক্রিয় — ব্যাকগ্রাউন্ড ও লক-স্ক্রিন অডিও সেশন চালু আছে';
+              els.sysAudioStatus.className = 'text-[11px] text-emerald-300 mt-0.5';
+            } else if (audioUnlocked) {
+              els.sysAudioStatus.textContent = 'অডিও প্রস্তুত — অটো-রিমাইন্ডার চালু করলে ব্যাকগ্রাউন্ড সেশন শুরু হবে';
+              els.sysAudioStatus.className = 'text-[11px] text-sky-300 mt-0.5';
+            } else {
+              els.sysAudioStatus.textContent = 'অপেক্ষমাণ — নিচের বাটনে একবার ট্যাপ করে অডিও আনলক করুন';
+              els.sysAudioStatus.className = 'text-[11px] text-amber-300 mt-0.5';
+            }
+          }
+
+          if (els.sysNotifStatus) {
+            if (notifPerm === 'granted') {
+              els.sysNotifStatus.textContent = 'অনুমতি দেওয়া আছে — লক-স্ক্রিন নোটিফিকেশন কাজ করবে';
+              els.sysNotifStatus.className = 'text-[11px] text-emerald-300 mt-0.5';
+            } else if (notifPerm === 'denied') {
+              els.sysNotifStatus.textContent = 'ব্লক করা আছে — ব্রাউজারের Site Settings থেকে Notifications Allow করুন';
+              els.sysNotifStatus.className = 'text-[11px] text-rose-300 mt-0.5';
+            } else if (notifPerm === 'unsupported') {
+              els.sysNotifStatus.textContent = 'এই ব্রাউজারে নোটিফিকেশন API পাওয়া যায়নি';
+              els.sysNotifStatus.className = 'text-[11px] text-slate-400 mt-0.5';
+            } else {
+              els.sysNotifStatus.textContent = 'অনুমতি দেওয়া হয়নি — Allow করতে পাশের বাটনে ট্যাপ করুন';
+              els.sysNotifStatus.className = 'text-[11px] text-amber-300 mt-0.5';
+            }
+          }
+
+          if (els.sysMicStatus) {
+            if (!SpeechRecognitionAPI) {
+              els.sysMicStatus.textContent = 'এই ব্রাউজারে বাংলা ভয়েস রিকগনিশন নেই (Google Chrome ব্যবহার করুন)';
+              els.sysMicStatus.className = 'text-[11px] text-amber-300 mt-0.5';
+            } else if (state.micPermissionState === 'granted') {
+              els.sysMicStatus.textContent = 'অনুমতি দেওয়া আছে — রিমাইন্ডারের পর নিজেই কথা শুনবে';
+              els.sysMicStatus.className = 'text-[11px] text-emerald-300 mt-0.5';
+            } else if (state.micPermissionState === 'denied') {
+              els.sysMicStatus.textContent = 'ব্লক করা আছে — Site Settings থেকে Microphone Allow করুন';
+              els.sysMicStatus.className = 'text-[11px] text-rose-300 mt-0.5';
+            } else {
+              els.sysMicStatus.textContent = 'মাইক্রোফোন অনুমতি নিশ্চিত করতে পাশের বাটনে ট্যাপ করুন';
+              els.sysMicStatus.className = 'text-[11px] text-slate-300 mt-0.5';
+            }
+          }
+
+          if (els.sysOfflineStatus && els.sysOfflineBadge) {
+            const voiceText = bnVoice ? `${bnVoice.name}` : 'ডিফল্ট সিস্টেম বাংলা ভয়েস';
+            els.sysOfflineStatus.textContent = `${voiceText} · ${swReady ? 'অফলাইন ক্যাশ প্রস্তুত' : 'অফলাইন ক্যাশ লোড হচ্ছে...'}`;
+            els.sysOfflineBadge.textContent = swReady ? 'অফলাইন রেডি' : 'স্ট্যান্ডবাই';
+            els.sysOfflineBadge.className = swReady
+              ? 'text-xs font-medium text-emerald-300 shrink-0'
+              : 'text-xs font-medium text-sky-300 shrink-0';
+          }
+        }
+
+        function openSystemModal() {
+          checkMicPermissionStatus();
+          refreshSystemReadinessUI();
+          els.systemSetupModal.classList.remove('hidden');
+          els.systemSetupModal.classList.add('flex');
+        }
+
+        function closeSystemModal() {
+          els.systemSetupModal.classList.add('hidden');
+          els.systemSetupModal.classList.remove('flex');
+        }
+
+        if (els.openSystemModalBtn) {
+          els.openSystemModalBtn.addEventListener('click', openSystemModal);
+        }
+        if (els.closeSystemModalBtn) {
+          els.closeSystemModalBtn.addEventListener('click', closeSystemModal);
+        }
+        if (els.systemSetupModal) {
+          els.systemSetupModal.addEventListener('click', (e) => {
+            if (e.target === els.systemSetupModal) closeSystemModal();
+          });
+        }
+
+        async function requestAndWarmMicrophone() {
+          if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            stream.getTracks().forEach((track) => track.stop());
+            state.micPermissionState = 'granted';
+          } catch (err) {
+            if (err && (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError')) {
+              state.micPermissionState = 'denied';
+            }
+          }
+          refreshSystemReadinessUI();
+        }
+
+        function sendTestLockScreenNotification() {
+          const name = getUserAddressName();
+          const sampleTask = getNextPendingTask() || {
+            id: 'test-notif',
+            time: '09:00',
+            title: 'টেস্ট রিমাইন্ডার',
+            note: 'লক-স্ক্রিন নোটিফিকেশন সঠিকভাবে কাজ করছে',
+          };
+          dispatchPersistentTaskNotification(sampleTask);
+          if ('vibrate' in navigator) {
+            try { navigator.vibrate([220, 120, 260]); } catch (_) {}
+          }
+          playGuardianChime(true);
+          if (name) {
+            speakBengali(`${name}, আপনার ফোনে একটি টেস্ট লক-স্ক্রিন নোটিফিকেশন পাঠানো হয়েছে।`, { listenAfter: false });
+          }
+        }
+
+        if (els.sysTestAudioBtn) {
+          els.sysTestAudioBtn.addEventListener('click', () => {
+            unlockAudioContext();
+            if (!state.settings.guardianArmed) state.settings.guardianArmed = true;
+            state.settings.backgroundMode = true;
+            saveState();
+            startBackgroundKeepAlive();
+            renderGuardianArmButton();
+            playGuardianChime(true);
+            const name = getUserAddressName();
+            speakBengali(
+              `${name ? name + ', ' : ''}অডিও এবং ব্যাকগ্রাউন্ড সেশন একদম ঠিকমতো কাজ করছে।`,
+              { listenAfter: false }
+            );
+            refreshSystemReadinessUI();
+          });
+        }
+
+        if (els.sysTestNotifBtn) {
+          els.sysTestNotifBtn.addEventListener('click', async () => {
+            unlockAudioContext();
+            if ('Notification' in window && Notification.permission === 'default') {
+              await Notification.requestPermission().catch(() => {});
+            }
+            if ('Notification' in window && Notification.permission === 'granted') {
+              sendTestLockScreenNotification();
+            }
+            renderBgModeButton();
+            refreshSystemReadinessUI();
+          });
+        }
+
+        if (els.sysTestMicBtn) {
+          els.sysTestMicBtn.addEventListener('click', async () => {
+            unlockAudioContext();
+            await requestAndWarmMicrophone();
+            if (state.micPermissionState === 'granted') {
+              const name = getUserAddressName();
+              speakBengali(`${name ? name + ', ' : ''}মাইক্রোফোন প্রস্তুত আছে।`, { listenAfter: false });
+            }
+          });
+        }
+
+        if (els.activateAllSystemsBtn) {
+          els.activateAllSystemsBtn.addEventListener('click', async () => {
+            state.settings.guardianArmed = true;
+            state.settings.backgroundMode = true;
+            saveState();
+            unlockAudioContext();
+            startBackgroundKeepAlive();
+            renderGuardianArmButton();
+
+            if ('Notification' in window && Notification.permission === 'default') {
+              await Notification.requestPermission().catch(() => {});
+            }
+            await requestAndWarmMicrophone();
+
+            if ('vibrate' in navigator) {
+              try { navigator.vibrate([220, 120, 260]); } catch (_) {}
+            }
+            playGuardianChime(true);
+
+            if ('Notification' in window && Notification.permission === 'granted') {
+              dispatchPersistentTaskNotification(
+                getNextPendingTask() || {
+                  id: 'system-ready',
+                  time: '09:00',
+                  title: 'সব সিস্টেম সক্রিয় আছে',
+                  note: 'অটো-রিমাইন্ডার ও লক-স্ক্রিন চালু',
+                }
+              );
+            }
+
+            renderBgModeButton();
+            refreshSystemReadinessUI();
+
+            const name = getUserAddressName();
+            setTimeout(() => {
+              speakBengali(
+                `চমৎকার${name ? ' ' + name : ''}! অটো-রিমাইন্ডার, ব্যাকগ্রাউন্ড সেশন এবং নোটিফিকেশন সিস্টেম সম্পূর্ণভাবে চালু করা হয়েছে।`,
+                { listenAfter: false }
+              );
+            }, 260);
+          });
+        }
+
         // =====================================================================
         // 12. BOOTSTRAP
         // =====================================================================
@@ -5600,6 +6031,10 @@
         updateOnlineStatus();
         refreshVoiceUI();
         renderAll();
+        checkMicPermissionStatus();
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.ready.then(() => refreshSystemReadinessUI()).catch(() => {});
+        }
 
         // Handle launch from lock-screen notification action button (?action=done|snooze&taskId=...)
         (function processLaunchNotificationAction() {

@@ -27,6 +27,6 @@
     }
   ],
   "rewrites": [
-    { "source": "/((?!sw\\.js|manifest\\.webmanifest|icon\\.svg|apple-touch-icon\\.png|pwa-.*\\.png).*)", "destination": "/index.html" }
+    { "source": "/((?!sw\\.js|manifest\\.webmanifest|icon\\.svg|logo\\.png|apple-touch-icon\\.png|pwa-.*\\.png).*)", "destination": "/index.html" }
   ]
 }
