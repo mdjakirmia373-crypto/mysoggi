@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'my-assistant-v1.6.0';
+const CACHE_VERSION = 'my-assistant-v1.6.1';
 const CORE_ASSETS = [
   '/',
   '/index.html',

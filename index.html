@@ -612,6 +612,9 @@
     border-top-width: calc(1px * var(--tw-divide-y-reverse));
     border-bottom-width: calc(1px * calc(1 - var(--tw-divide-y-reverse)));
   }
+  :where(.divide-slate-800 > :not(:last-child)) {
+    border-color: var(--color-slate-800);
+  }
   :where(.divide-slate-800\/80 > :not(:last-child)) {
     border-color: color-mix(in srgb, oklch(27.9% 0.041 260.031) 80%, transparent);
     @supports (color: color-mix(in lab, red, red)) {
@@ -1156,6 +1159,12 @@
   }
   .text-sky-300 {
     color: var(--color-sky-300);
+  }
+  .text-sky-300\/85 {
+    color: color-mix(in srgb, oklch(82.8% 0.111 230.318) 85%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      color: color-mix(in oklab, var(--color-sky-300) 85%, transparent);
+    }
   }
   .text-sky-300\/90 {
     color: color-mix(in srgb, oklch(82.8% 0.111 230.318) 90%, transparent);
@@ -2752,15 +2761,18 @@
           <input type="hidden" id="task-id-input" />
           <div>
             <label for="task-title-input" class="block text-xs font-medium text-slate-300 mb-1.5">
-              কাজের নাম (বাংলা বা ইংরেজি)
+              এলার্মের বার্তা / কাজের কথা (বাংলা বা ইংরেজি)
             </label>
             <input
               id="task-title-input"
               type="text"
               required
-              placeholder="যেমন: দুপুরের ওষুধ খাওয়া"
+              placeholder="যেমন: এখন তোমার অফিসে যাওয়ার সময় হয়েছে"
               class="w-full h-11 px-3.5 rounded-xl bg-slate-950/80 border border-slate-700/80 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-sky-400"
             />
+            <p class="mt-1.5 text-[11px] text-sky-300/85 leading-relaxed">
+              সময় হলে আপনার নামের সাথে ঠিক এই ঘরের লেখাটাই পরপর ২ বার বলবে।
+            </p>
           </div>
 
           <div class="grid grid-cols-2 gap-3">
@@ -2795,7 +2807,7 @@
 
           <div>
             <label for="task-note-input" class="block text-xs font-medium text-slate-300 mb-1.5">
-              অতিরিক্ত নোট (ঐচ্ছিক)
+              তালিকার নোট (ঐচ্ছিক — শুধু স্ক্রিনে দেখাবে)
             </label>
             <input
               id="task-note-input"
@@ -3006,6 +3018,20 @@
           </div>
         </div>
 
+        <div class="rounded-2xl bg-slate-950/75 border border-slate-800/80 p-3.5 flex items-center justify-between gap-3">
+          <div class="min-w-0">
+            <div class="text-xs font-medium text-slate-200">প্রতিটি এলার্ম ২ বার বলবে</div>
+            <div class="text-[11px] text-slate-400 mt-0.5">একবার বলার পর সামান্য বিরতি দিয়ে আবার একই কথা বলবে</div>
+          </div>
+          <button
+            id="double-speak-toggle-btn"
+            type="button"
+            class="btn-touch px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors whitespace-nowrap shrink-0"
+          >
+            চালু (২ বার)
+          </button>
+        </div>
+
         <button
           id="test-human-voice-btn"
           type="button"
@@ -3213,16 +3239,28 @@
         };
 
         const DEFAULT_TASKS = [
-          { id: 't1', time: '06:30', title: 'ঘুম থেকে ওঠা ও ফ্রেশ হওয়া', category: 'দৈনন্দিন', note: 'সকালের সূচনা', completed: false, snoozeUntil: null, triggeredToday: false },
-          { id: 't2', time: '07:15', title: 'গোসল করা', category: 'দৈনন্দিন', note: 'পরিষ্কার-পরিচ্ছন্নতা', completed: false, snoozeUntil: null, triggeredToday: false },
-          { id: 't3', time: '08:00', title: 'সকালের নাস্তা খাওয়া', category: 'খাবার', note: 'হালকা ও পুষ্টিকর নাস্তা', completed: false, snoozeUntil: null, triggeredToday: false },
-          { id: 't4', time: '09:00', title: 'সকালের ওষুধ খাওয়া', category: 'ওষুধ', note: 'এক গ্লাস পানির সাথে', completed: false, snoozeUntil: null, triggeredToday: false },
-          { id: 't5', time: '13:30', title: 'দুপুরের খাবার খাওয়া', category: 'খাবার', note: 'সময়মতো দুপুরের খাবার', completed: false, snoozeUntil: null, triggeredToday: false },
-          { id: 't6', time: '17:00', title: 'বিকেলের হাঁটাহাঁটি ও পানি পান', category: 'স্বাস্থ্য', note: '২০ মিনিট হালকা ব্যায়াম', completed: false, snoozeUntil: null, triggeredToday: false },
-          { id: 't7', time: '20:30', title: 'রাতের খাবার খাওয়া', category: 'খাবার', note: 'সহজপাচ্য রাতের খাবার', completed: false, snoozeUntil: null, triggeredToday: false },
-          { id: 't8', time: '21:30', title: 'রাতের ওষুধ খাওয়া', category: 'ওষুধ', note: 'ঘুমানোর আগের ডোজ', completed: false, snoozeUntil: null, triggeredToday: false },
-          { id: 't9', time: '22:45', title: 'ঘুমানোর প্রস্তুতি', category: 'বিশ্রাম', note: 'ফোন দূরে রেখে বিশ্রাম', completed: false, snoozeUntil: null, triggeredToday: false },
+          { id: 't1', time: '06:30', title: 'এখন ঘুম থেকে ওঠার ও ফ্রেশ হওয়ার সময় হয়েছে', category: 'দৈনন্দিন', note: 'সকালের সূচনা', completed: false, snoozeUntil: null, triggeredToday: false },
+          { id: 't2', time: '07:15', title: 'এখন গোসল করে ফ্রেশ হয়ে নেওয়ার সময় হয়েছে', category: 'দৈনন্দিন', note: 'পরিষ্কার-পরিচ্ছন্নতা', completed: false, snoozeUntil: null, triggeredToday: false },
+          { id: 't3', time: '08:00', title: 'এখন সকালের নাস্তা খাওয়ার সময় হয়েছে', category: 'খাবার', note: 'হালকা ও পুষ্টিকর নাস্তা', completed: false, snoozeUntil: null, triggeredToday: false },
+          { id: 't4', time: '09:00', title: 'এখন সকালের ওষুধ খাওয়ার সময় হয়েছে', category: 'ওষুধ', note: 'এক গ্লাস পানির সাথে', completed: false, snoozeUntil: null, triggeredToday: false },
+          { id: 't5', time: '13:30', title: 'এখন দুপুরের খাবার খাওয়ার সময় হয়েছে', category: 'খাবার', note: 'সময়মতো দুপুরের খাবার', completed: false, snoozeUntil: null, triggeredToday: false },
+          { id: 't6', time: '17:00', title: 'এখন বিকেলের হাঁটাহাঁটি ও পানি পান করার সময় হয়েছে', category: 'স্বাস্থ্য', note: '২০ মিনিট হালকা ব্যায়াম', completed: false, snoozeUntil: null, triggeredToday: false },
+          { id: 't7', time: '20:30', title: 'এখন রাতের খাবার খাওয়ার সময় হয়েছে', category: 'খাবার', note: 'সহজপাচ্য রাতের খাবার', completed: false, snoozeUntil: null, triggeredToday: false },
+          { id: 't8', time: '21:30', title: 'এখন রাতের ওষুধ খাওয়ার সময় হয়েছে', category: 'ওষুধ', note: 'ঘুমানোর আগের ডোজ', completed: false, snoozeUntil: null, triggeredToday: false },
+          { id: 't9', time: '22:45', title: 'এখন ঘুমানোর প্রস্তুতি নেওয়ার সময় হয়েছে', category: 'বিশ্রাম', note: 'ফোন দূরে রেখে বিশ্রাম', completed: false, snoozeUntil: null, triggeredToday: false },
         ];
+
+        const LEGACY_DEFAULT_PURPOSE_MAP = {
+          'ঘুম থেকে ওঠা ও ফ্রেশ হওয়া': 'এখন ঘুম থেকে ওঠার ও ফ্রেশ হওয়ার সময় হয়েছে',
+          'গোসল করা': 'এখন গোসল করে ফ্রেশ হয়ে নেওয়ার সময় হয়েছে',
+          'সকালের নাস্তা খাওয়া': 'এখন সকালের নাস্তা খাওয়ার সময় হয়েছে',
+          'সকালের ওষুধ খাওয়া': 'এখন সকালের ওষুধ খাওয়ার সময় হয়েছে',
+          'দুপুরের খাবার খাওয়া': 'এখন দুপুরের খাবার খাওয়ার সময় হয়েছে',
+          'বিকেলের হাঁটাহাঁটি ও পানি পান': 'এখন বিকেলের হাঁটাহাঁটি ও পানি পান করার সময় হয়েছে',
+          'রাতের খাবার খাওয়া': 'এখন রাতের খাবার খাওয়ার সময় হয়েছে',
+          'রাতের ওষুধ খাওয়া': 'এখন রাতের ওষুধ খাওয়ার সময় হয়েছে',
+          'ঘুমানোর প্রস্তুতি': 'এখন ঘুমানোর প্রস্তুতি নেওয়ার সময় হয়েছে',
+        };
 
         const MOOD_META = {
           caring: { label: 'স্নেহময়ী অভিভাবক', rate: 0.93, pitch: 1.03 },
@@ -3245,6 +3283,7 @@
             filter: 'all',
             guardianArmed: false,
             backgroundMode: true,
+            doubleSpeak: true,
             timeMode: 'auto', // 'auto' (strictly device clock) | 'custom' (user-set offset)
             timeOffsetMs: 0,
             voiceURI: 'auto',
@@ -3297,7 +3336,12 @@
             if (rawTasks) {
               const parsed = JSON.parse(rawTasks);
               if (Array.isArray(parsed) && parsed.length > 0) {
-                state.tasks = parsed;
+                state.tasks = parsed.map((t) => {
+                  if (!t.customMessage && LEGACY_DEFAULT_PURPOSE_MAP[t.title]) {
+                    return { ...t, title: LEGACY_DEFAULT_PURPOSE_MAP[t.title] };
+                  }
+                  return t;
+                });
               } else {
                 state.tasks = structuredCloneSafe(DEFAULT_TASKS);
               }
@@ -3399,6 +3443,7 @@
             .replace(/[“”"'`]/g, '')
             .replace(/\(([^)]+)\)/g, ', $1')
             .replace(/[·•|/]/g, ', ')
+            .replace(/^[,،.;:!?।-\s]+/, '')
             .replace(/\s+/g, ' ')
             .trim();
         }
@@ -3411,48 +3456,20 @@
           return sanitizeTextForHumanSpeech(state.settings.userName || '');
         }
 
-        function buildReminderSpeech(task) {
-          const spokenTime = getBengaliSpokenTime(task.time);
-          const cleanTitle = sanitizeTextForHumanSpeech(task.title);
-          const cleanNote = sanitizeTextForHumanSpeech(task.note);
-          const noteClause = cleanNote ? ` মনে রেখো, ${cleanNote}।` : '';
-          const mood = state.settings.mood;
-          const name = getUserAddressName();
+        function getReminderRepeatCount() {
+          return state.settings.doubleSpeak === false ? 1 : 2;
+        }
 
-          if (mood === 'strict') {
-            if (name) {
-              return pickRandomLine([
-                `এই যে ${name}, শুনছেন? এখন ${spokenTime} বাজে। আপনার ${cleanTitle} করার সময় হয়ে গেছে।${noteClause} দেরি করবেন না, এখনই সেরে ফেলুন। ${name}, কাজটা কি হয়ে গেছে?`,
-                `${name}, মনোযোগ দিন। ঘড়িতে এখন ${spokenTime}। ${cleanTitle} কিন্তু এখনও বাকি আছে।${noteClause} একটুও আলসেমি না করে উঠে পড়ুন তো। কাজটা শেষ হয়েছে কি?`
-              ]);
-            }
-            return pickRandomLine([
-              `এই যে, শুনছেন? এখন ${spokenTime} বাজে। আপনার ${cleanTitle} করার সময় হয়ে গেছে।${noteClause} দেরি করবেন না, এখনই সেরে ফেলুন। কাজটা কি হয়ে গেছে?`,
-              `মনোযোগ দিন, ঘড়িতে এখন ${spokenTime}। ${cleanTitle} কিন্তু এখনও বাকি আছে।${noteClause} একটুও আলসেমি না করে উঠে পড়ুন তো। কাজটা শেষ হয়েছে কি?`
-            ]);
-          }
-          if (mood === 'friendly') {
-            if (name) {
-              return pickRandomLine([
-                `এই যে ${name}, কেমন আছো? এখন ${spokenTime} বাজে, চলো ${cleanTitle} সেরে ফেলি।${noteClause} কী খবর ${name}, কাজটা হয়ে গেছে নাকি একটু পরে করবে?`,
-                `হ্যালো ${name}! ঘড়ির কাঁটায় এখন ${spokenTime}। তোমার ${cleanTitle} করার সময় হয়েছে।${noteClause} কাজটা কি সেরে ফেলেছো?`
-              ]);
-            }
-            return pickRandomLine([
-              `এই যে বন্ধু, কেমন আছো? এখন ${spokenTime} বাজে, চলো ${cleanTitle} সেরে ফেলি।${noteClause} কী খবর, কাজটা হয়ে গেছে নাকি একটু পরে করবে?`,
-              `হ্যালো দোস্ত! ঘড়ির কাঁটায় এখন ${spokenTime}। তোমার ${cleanTitle} করার সময় হয়েছে।${noteClause} কাজটা কি সেরে ফেলেছো?`
-            ]);
-          }
-          if (name) {
-            return pickRandomLine([
-              `এই যে ${name}, শুনছো? এখন ${spokenTime} বাজে। তোমার ${cleanTitle} করার সময় হয়ে গেছে।${noteClause} একটু উঠে কাজটা করে ফেলো তো। ${name}, কাজটা কি হয়ে গেছে?`,
-              `খেয়াল করো তো ${name}, এখন ${spokenTime} হয়েছে। ${cleanTitle} করার সময় হয়ে গেছে।${noteClause} নিজেকে একটু সময় দিয়ে কাজটা সেরে নাও। হয়েছে কি?`
-            ]);
-          }
-          return pickRandomLine([
-            `শুনছো? এখন ${spokenTime} বাজে। তোমার ${cleanTitle} করার সময় হয়ে গেছে।${noteClause} একটু উঠে কাজটা করে ফেলো তো। কাজটা কি হয়ে গেছে?`,
-            `এই যে, খেয়াল করো তো, এখন ${spokenTime} হয়েছে। ${cleanTitle} করার সময় হয়ে গেছে।${noteClause} নিজেকে একটু সময় দিয়ে কাজটা সেরে নাও। হয়েছে কি?`
-          ]);
+        function buildReminderSpeech(task) {
+          const rawClean = sanitizeTextForHumanSpeech(task.title);
+          const spokenBody =
+            !task.customMessage && LEGACY_DEFAULT_PURPOSE_MAP[rawClean]
+              ? LEGACY_DEFAULT_PURPOSE_MAP[rawClean]
+              : rawClean;
+          const name = getUserAddressName();
+          if (!name) return spokenBody;
+          const alreadyHasName = spokenBody.toLowerCase().startsWith(name.toLowerCase());
+          return alreadyHasName ? spokenBody : `${name}, ${spokenBody}`;
         }
 
         function buildCompletionSpeech(task) {
@@ -3590,6 +3607,7 @@
           closeVoiceModalBtn: document.getElementById('close-voice-modal-btn'),
           voiceActiveName: document.getElementById('voice-active-name'),
           voiceSelectInput: document.getElementById('voice-select-input'),
+          doubleSpeakToggleBtn: document.getElementById('double-speak-toggle-btn'),
           testHumanVoiceBtn: document.getElementById('test-human-voice-btn'),
           openNameModalBtn: document.getElementById('open-name-modal-btn'),
           headerUserName: document.getElementById('header-user-name'),
@@ -3749,7 +3767,7 @@
           }
         }
 
-        function playGuardianChime(urgent = false) {
+        function playGuardianChime(urgent = false, category = 'দৈনন্দিন') {
           try {
             const Ctx = window.AudioContext || window.webkitAudioContext;
             if (!Ctx) return;
@@ -3758,18 +3776,44 @@
               audioCtx.resume().catch(() => {});
             }
             const now = audioCtx.currentTime;
-            // Warm gentle organic chime (3-note harmonic bell when scheduled alert sounds)
-            const notes = urgent
-              ? [
-                  { freq: 523.25, delay: 0, dur: 0.45 },
-                  { freq: 659.25, delay: 0.12, dur: 0.48 },
-                  { freq: 783.99, delay: 0.25, dur: 0.6 },
-                ]
-              : [
-                  { freq: 523.25, delay: 0, dur: 0.42 },
-                  { freq: 659.25, delay: 0.12, dur: 0.48 },
-                ];
-            const peakGain = urgent ? 0.15 : 0.09;
+            // Purpose-aware organic chimes tailored to each alarm category
+            let notes;
+            if (category === 'ওষুধ') {
+              notes = [
+                { freq: 659.25, delay: 0, dur: 0.34 },
+                { freq: 880.0, delay: 0.14, dur: 0.42 },
+                { freq: 880.0, delay: 0.34, dur: 0.45 },
+              ];
+            } else if (category === 'খাবার') {
+              notes = [
+                { freq: 440.0, delay: 0, dur: 0.4 },
+                { freq: 554.37, delay: 0.13, dur: 0.44 },
+                { freq: 659.25, delay: 0.27, dur: 0.54 },
+              ];
+            } else if (category === 'বিশ্রাম') {
+              notes = [
+                { freq: 392.0, delay: 0, dur: 0.55 },
+                { freq: 493.88, delay: 0.18, dur: 0.65 },
+              ];
+            } else if (category === 'স্বাস্থ্য') {
+              notes = [
+                { freq: 523.25, delay: 0, dur: 0.38 },
+                { freq: 659.25, delay: 0.11, dur: 0.4 },
+                { freq: 783.99, delay: 0.22, dur: 0.52 },
+              ];
+            } else {
+              notes = urgent
+                ? [
+                    { freq: 523.25, delay: 0, dur: 0.45 },
+                    { freq: 659.25, delay: 0.12, dur: 0.48 },
+                    { freq: 783.99, delay: 0.25, dur: 0.6 },
+                  ]
+                : [
+                    { freq: 523.25, delay: 0, dur: 0.42 },
+                    { freq: 659.25, delay: 0.12, dur: 0.48 },
+                  ];
+            }
+            const peakGain = urgent ? 0.15 : 0.095;
             notes.forEach(({ freq, delay, dur }) => {
               const osc = audioCtx.createOscillator();
               const gain = audioCtx.createGain();
@@ -3976,7 +4020,7 @@
           return clauses.length ? clauses : [{ text: cleaned, pauseAfterMs: 240 }];
         }
 
-        function speakBengali(text, { listenAfter = false, taskId = null } = {}) {
+        function speakBengali(text, { listenAfter = false, taskId = null, repeatCount = 1, repeatGapMs = 680 } = {}) {
           if (taskId) {
             state.activeTaskId = taskId;
             const t = state.tasks.find((item) => item.id === taskId);
@@ -3984,7 +4028,8 @@
             els.activeReplyActions.classList.remove('hidden');
           }
 
-          els.guardianSpeechLog.textContent = sanitizeTextForHumanSpeech(text);
+          const cleanDisplayText = sanitizeTextForHumanSpeech(text);
+          els.guardianSpeechLog.textContent = cleanDisplayText;
           els.userTranscriptRow.classList.add('hidden');
 
           if (!('speechSynthesis' in window)) {
@@ -4033,9 +4078,14 @@
           const moodCfg = MOOD_META[state.settings.mood] || MOOD_META.caring;
           const paceMult = PACE_MULTIPLIER[state.settings.voicePace] || PACE_MULTIPLIER.natural;
           const bnVoice = pickBengaliVoice();
-          const clauses = splitIntoNaturalClauses(text);
+          const clauses = splitIntoNaturalClauses(cleanDisplayText);
+          const totalPasses = Math.max(1, Number(repeatCount) || 1);
+          let currentPass = 1;
 
-          setOrbState('speaking', 'বাংলায় কথা বলছি...');
+          setOrbState(
+            'speaking',
+            totalPasses > 1 ? `বাংলায় বলছি (১/${toBengaliDigits(totalPasses)})...` : 'বাংলায় কথা বলছি...'
+          );
 
           const finishSpeechSession = () => {
             if (sessionId !== state.speechSessionId) return;
@@ -4060,7 +4110,19 @@
           const speakClauseAt = (index) => {
             if (sessionId !== state.speechSessionId) return;
             if (index >= clauses.length) {
-              finishSpeechSession();
+              if (currentPass < totalPasses) {
+                currentPass += 1;
+                state.speechQueueTimer = setTimeout(() => {
+                  if (sessionId !== state.speechSessionId) return;
+                  setOrbState(
+                    'speaking',
+                    `আবার বলছি (${toBengaliDigits(currentPass)}/${toBengaliDigits(totalPasses)})...`
+                  );
+                  speakClauseAt(0);
+                }, repeatGapMs);
+              } else {
+                finishSpeechSession();
+              }
               return;
             }
 
@@ -4099,7 +4161,7 @@
                   speakClauseAt(index + 1);
                 }, clause.pauseAfterMs);
               } else {
-                finishSpeechSession();
+                speakClauseAt(clauses.length);
               }
             };
 
@@ -4369,16 +4431,18 @@
         // =====================================================================
         // 6. TASK OPERATIONS & SCHEDULED AUTO-TRIGGER LOOP
         // =====================================================================
-        function createTaskObject(title, time, category, note) {
+        function createTaskObject(title, time, category, note, customMessage = true) {
+          const cleanTitle = sanitizeTextForHumanSpeech(title);
           return {
             id: 't_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
             time,
-            title,
+            title: cleanTitle || String(title || '').trim(),
             category: category || 'দৈনন্দিন',
             note: note || '',
             completed: false,
             snoozeUntil: null,
             triggeredToday: false,
+            customMessage: Boolean(customMessage),
           };
         }
 
@@ -4474,8 +4538,9 @@
 
         function dispatchPersistentTaskNotification(task) {
           const name = getUserAddressName();
-          const title = name ? `⏰ ${name}, কাজের সময় হয়েছে!` : '⏰ রুটিন রিমাইন্ডার';
-          const body = `${formatDisplayTime(task.time)} — ${task.title}${task.note ? ' (' + task.note + ')' : ''}`;
+          const spokenLine = buildReminderSpeech(task);
+          const title = name ? `⏰ ${name} · ${task.category || 'রুটিন এলার্ম'}` : `⏰ ${task.category || 'রুটিন এলার্ম'}`;
+          const body = `${formatDisplayTime(task.time)} — ${spokenLine}`;
           const tag = 'task-' + task.id;
 
           if ('serviceWorker' in navigator) {
@@ -4524,7 +4589,7 @@
             } catch (_) {}
           }
 
-          playGuardianChime(fromSchedule);
+          playGuardianChime(fromSchedule, task.category);
           updateMediaSessionMetadata(task);
 
           if (fromSchedule && 'Notification' in window && Notification.permission === 'granted') {
@@ -4550,7 +4615,12 @@
 
           const msg = buildReminderSpeech(task);
           setTimeout(() => {
-            speakBengali(msg, { listenAfter: !isHidden, taskId: task.id });
+            speakBengali(msg, {
+              listenAfter: !isHidden,
+              taskId: task.id,
+              repeatCount: getReminderRepeatCount(),
+              repeatGapMs: 680,
+            });
           }, 320);
         }
 
@@ -5153,7 +5223,8 @@
         els.taskForm.addEventListener('submit', (e) => {
           e.preventDefault();
           const id = els.taskIdInput.value.trim();
-          const title = els.taskTitleInput.value.trim();
+          const rawTitle = els.taskTitleInput.value.trim();
+          const title = sanitizeTextForHumanSpeech(rawTitle) || rawTitle;
           const time = els.taskTimeInput.value.trim();
           const category = els.taskCategoryInput.value;
           const note = els.taskNoteInput.value.trim();
@@ -5169,14 +5240,16 @@
               existing.note = note;
               existing.triggeredToday = false;
               existing.snoozeUntil = null;
+              existing.customMessage = true;
             }
           } else {
-            state.tasks.push(createTaskObject(title, time, category, note));
+            state.tasks.push(createTaskObject(title, time, category, note, true));
           }
 
           sortTasks();
           saveState();
           renderAll();
+          updateMediaSessionMetadata();
           closeTaskModal();
         });
 
@@ -5245,11 +5318,12 @@
               state.pendingFollowUpTaskId = null;
               clearBgRepeatTimer();
               if (pendingTask && state.orbState === 'idle') {
-                const name = getUserAddressName();
-                speakBengali(
-                  `${name ? name + ', ' : ''}${sanitizeTextForHumanSpeech(pendingTask.title)} কাজটি কি শেষ হয়েছে?`,
-                  { listenAfter: true, taskId: pendingTask.id }
-                );
+                speakBengali(buildReminderSpeech(pendingTask), {
+                  listenAfter: true,
+                  taskId: pendingTask.id,
+                  repeatCount: getReminderRepeatCount(),
+                  repeatGapMs: 680,
+                });
               }
             }
             if (state.wakeLockEnabled && 'wakeLock' in navigator) {
@@ -5519,9 +5593,24 @@
           });
         }
 
+        function renderDoubleSpeakToggle() {
+          if (!els.doubleSpeakToggleBtn) return;
+          const enabled = state.settings.doubleSpeak !== false;
+          if (enabled) {
+            els.doubleSpeakToggleBtn.textContent = 'চালু (২ বার)';
+            els.doubleSpeakToggleBtn.className =
+              'btn-touch px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/40 text-emerald-200 transition-colors whitespace-nowrap shrink-0';
+          } else {
+            els.doubleSpeakToggleBtn.textContent = 'বন্ধ (১ বার)';
+            els.doubleSpeakToggleBtn.className =
+              'btn-touch px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 transition-colors whitespace-nowrap shrink-0';
+          }
+        }
+
         function openVoiceSettingsModal() {
           loadVoices();
           refreshVoiceUI();
+          renderDoubleSpeakToggle();
           els.voiceSettingsModal.classList.remove('hidden');
           els.voiceSettingsModal.classList.add('flex');
         }
@@ -5549,6 +5638,13 @@
             refreshVoiceUI();
           });
         }
+        if (els.doubleSpeakToggleBtn) {
+          els.doubleSpeakToggleBtn.addEventListener('click', () => {
+            state.settings.doubleSpeak = state.settings.doubleSpeak === false ? true : false;
+            saveState();
+            renderDoubleSpeakToggle();
+          });
+        }
         document.querySelectorAll('.pace-btn').forEach((btn) => {
           btn.addEventListener('click', () => {
             state.settings.voicePace = btn.dataset.pace;
@@ -5561,11 +5657,14 @@
             unlockAudioContext();
             const next = getNextPendingTask();
             const name = getUserAddressName();
-            const greeting = name ? `হ্যালো ${name}!` : 'হ্যালো!';
             const sample = next
-              ? `${greeting} এখন ${getBengaliSpokenTime(next.time)} সময়ের জন্য আপনার ${sanitizeTextForHumanSpeech(next.title)} কাজটি মনে রাখার পালা। নিজের খেয়াল রাখবেন।`
-              : `${greeting} আমি আপনার প্রতিদিনের রুটিন অভিভাবক। সময় হলেই ঠিক এভাবে মানুষের মতো আপনার নাম ধরে মনে করিয়ে দেব।`;
-            speakBengali(sample, { listenAfter: false });
+              ? buildReminderSpeech(next)
+              : `${name ? name + ', ' : ''}এখন আপনার প্রতিদিনের রুটিন দেখার সময় হয়েছে।`;
+            speakBengali(sample, {
+              listenAfter: false,
+              repeatCount: getReminderRepeatCount(),
+              repeatGapMs: 680,
+            });
           });
         }
 
