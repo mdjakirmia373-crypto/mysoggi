@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'my-assistant-v1.7.0';
+const CACHE_VERSION = 'my-assistant-v1.8.1';
 const CORE_ASSETS = [
   '/',
   '/index.html',
@@ -104,7 +104,7 @@ self.addEventListener('message', (event) => {
         tag: payload.tag || 'routine-reminder',
         renotify: true,
         requireInteraction: true,
-        vibrate: [300, 140, 300, 140, 480],
+        vibrate: [500, 180, 500, 180, 700],
         data: { taskId: payload.taskId || '' },
         actions: [
           { action: 'done', title: 'হ্যাঁ, করেছি' },

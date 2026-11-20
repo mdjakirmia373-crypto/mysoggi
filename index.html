@@ -487,6 +487,9 @@
   .transform {
     transform: var(--tw-rotate-x, ) var(--tw-rotate-y, ) var(--tw-rotate-z, ) var(--tw-skew-x, ) var(--tw-skew-y, );
   }
+  .cursor-pointer {
+    cursor: pointer;
+  }
   .resize {
     resize: both;
   }
@@ -634,6 +637,9 @@
   }
   .overflow-y-auto {
     overflow-y: auto;
+  }
+  .rounded {
+    border-radius: 0.25rem;
   }
   .rounded-2xl {
     border-radius: var(--radius-2xl);
@@ -1218,6 +1224,9 @@
   .antialiased {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+  .accent-sky-400 {
+    accent-color: var(--color-sky-400);
   }
   .opacity-45 {
     opacity: 45%;
@@ -2817,6 +2826,19 @@
             />
           </div>
 
+          <label class="rounded-xl bg-slate-950/75 border border-slate-800/80 p-3 flex items-center justify-between gap-3 cursor-pointer">
+            <div class="min-w-0">
+              <div class="text-xs font-medium text-slate-100">প্রতিদিন একই সময়ে এলার্ম বাজবে (Daily Repeat)</div>
+              <div class="text-[11px] text-slate-400 mt-0.5">একবার সেট করলে প্রতিদিন এই সময়ে অফলাইন ও অনলাইনে অটোমেটিক ডাকবে</div>
+            </div>
+            <input
+              id="task-daily-repeat"
+              type="checkbox"
+              checked
+              class="w-5 h-5 accent-sky-400 rounded cursor-pointer shrink-0"
+            />
+          </label>
+
           <div class="flex items-center gap-3 pt-2">
             <button
               type="button"
@@ -3281,7 +3303,7 @@
             namePromptDismissed: false,
             mood: 'caring',
             filter: 'all',
-            guardianArmed: false,
+            guardianArmed: true,
             backgroundMode: true,
             doubleSpeak: true,
             timeMode: 'auto', // 'auto' (strictly device clock) | 'custom' (user-set offset)
@@ -3305,6 +3327,8 @@
           bgAudioListenersBound: false,
           bgLockRelease: null,
           silentAudioHeartbeat: null,
+          bgRepeatAttempt: 0,
+          lastMediaSessionMinute: '',
           listenRetryCount: 0,
           bgWorker: null,
           lastScheduleCheckMs: 0,
@@ -3342,10 +3366,11 @@
               const parsed = JSON.parse(rawTasks);
               if (Array.isArray(parsed) && parsed.length > 0) {
                 state.tasks = parsed.map((t) => {
-                  if (!t.customMessage && LEGACY_DEFAULT_PURPOSE_MAP[t.title]) {
-                    return { ...t, title: LEGACY_DEFAULT_PURPOSE_MAP[t.title] };
-                  }
-                  return t;
+                  const base =
+                    !t.customMessage && LEGACY_DEFAULT_PURPOSE_MAP[t.title]
+                      ? { ...t, title: LEGACY_DEFAULT_PURPOSE_MAP[t.title] }
+                      : t;
+                  return { ...base, dailyRepeat: base.dailyRepeat !== false };
                 });
               } else {
                 state.tasks = structuredCloneSafe(DEFAULT_TASKS);
@@ -3357,16 +3382,19 @@
             state.tasks = structuredCloneSafe(DEFAULT_TASKS);
           }
 
-          // Auto-reset daily status when date rolls over
+          // Auto-reset daily alarms when date rolls over
           const today = getTodayKey();
           const lastDate = localStorage.getItem(STORAGE_KEYS.LAST_DATE);
           if (lastDate && lastDate !== today) {
-            state.tasks = state.tasks.map((t) => ({
-              ...t,
-              completed: false,
-              snoozeUntil: null,
-              triggeredToday: false,
-            }));
+            state.tasks = state.tasks.map((t) => {
+              if (t.dailyRepeat === false) return t;
+              return {
+                ...t,
+                completed: false,
+                snoozeUntil: null,
+                triggeredToday: false,
+              };
+            });
           }
           localStorage.setItem(STORAGE_KEYS.LAST_DATE, today);
           saveState();
@@ -3602,6 +3630,7 @@
           taskTimeInput: document.getElementById('task-time-input'),
           taskCategoryInput: document.getElementById('task-category-input'),
           taskNoteInput: document.getElementById('task-note-input'),
+          taskDailyRepeatInput: document.getElementById('task-daily-repeat'),
           modalVoiceAddBtn: document.getElementById('modal-voice-add-btn'),
           modalVoiceLabel: document.getElementById('modal-voice-label'),
           iosInstallModal: document.getElementById('ios-install-modal'),
@@ -3673,7 +3702,7 @@
             const name = getUserAddressName();
             const target = activeTask || getNextPendingTask();
             const title = activeTask
-              ? `⏰ ${activeTask.title}`
+              ? `${activeTask.title}`
               : target
               ? `পরবর্তী: ${formatDisplayTime(target.time)} · ${target.title}`
               : 'আজকের সব রুটিন সম্পন্ন';
@@ -4062,6 +4091,7 @@
         function stopAllVoiceActivity() {
           clearBgRepeatTimer();
           state.pendingFollowUpTaskId = null;
+          state.bgRepeatAttempt = 0;
           state.speechSessionId += 1;
           if (state.speechWatchdog) {
             clearTimeout(state.speechWatchdog);
@@ -4097,22 +4127,46 @@
 
           const clauses = [];
           rawParts.forEach((part) => {
-            if (part.length > 95 && part.includes(',')) {
+            const firstComma = part.indexOf(',');
+            // Pause briefly after addressing user's name/greeting before speaking the reminder
+            if (firstComma > 0 && firstComma <= 36 && part.length > firstComma + 3) {
+              const opener = part.slice(0, firstComma).trim();
+              const rest = part.slice(firstComma + 1).trim();
+              if (opener) {
+                clauses.push({ text: opener, pauseAfterMs: 175 });
+              }
+              if (rest) {
+                if (rest.length > 68 && rest.includes(',')) {
+                  const sub = rest.split(/,\s+/).map((p) => p.trim()).filter(Boolean);
+                  sub.forEach((s, idx) => {
+                    clauses.push({
+                      text: s,
+                      pauseAfterMs: idx < sub.length - 1 ? 150 : 300,
+                    });
+                  });
+                } else {
+                  clauses.push({
+                    text: rest,
+                    pauseAfterMs: rest.endsWith('?') ? 230 : 300,
+                  });
+                }
+              }
+            } else if (part.length > 68 && part.includes(',')) {
               const sub = part.split(/,\s+/).map((p) => p.trim()).filter(Boolean);
               sub.forEach((s, idx) => {
                 clauses.push({
                   text: s,
-                  pauseAfterMs: idx < sub.length - 1 ? 140 : 280,
+                  pauseAfterMs: idx < sub.length - 1 ? 150 : 300,
                 });
               });
             } else {
               clauses.push({
                 text: part,
-                pauseAfterMs: part.endsWith('?') ? 220 : 280,
+                pauseAfterMs: part.endsWith('?') ? 230 : 300,
               });
             }
           });
-          return clauses.length ? clauses : [{ text: cleaned, pauseAfterMs: 240 }];
+          return clauses.length ? clauses : [{ text: cleaned, pauseAfterMs: 260 }];
         }
 
         function speakBengali(text, { listenAfter = false, taskId = null, repeatCount = 1, repeatGapMs = 680 } = {}) {
@@ -4225,15 +4279,18 @@
             const isOpener = index === 0 && clauses.length > 1;
             const isQuestion = clause.text.endsWith('?');
 
-            // Subtle human-like pitch & cadence inflection across opener / body / question
+            // Subtle human-like pitch & cadence inflection across opener / body / repeat
             let rate = moodCfg.rate * paceMult;
             let pitch = moodCfg.pitch;
             if (isOpener) {
-              rate *= 0.97;
-              pitch += 0.02;
+              rate *= 0.94;
+              pitch += 0.03;
             } else if (isQuestion) {
               rate *= 0.95;
               pitch += 0.04;
+            }
+            if (currentPass > 1) {
+              rate *= 0.98;
             }
 
             const utterance = new SpeechSynthesisUtterance(clause.text);
@@ -4485,13 +4542,18 @@
           // 1. Check if user wants to add a new task via voice
           if (/নতুন কাজ|যোগ করো|যোগ করুন|অ্যাড করো|add task/i.test(lower)) {
             const parsed = parseVoiceTaskCommand(text);
-            const newTask = createTaskObject(parsed.title, parsed.time, parsed.category, 'ভয়েস কমান্ডে যোগ করা');
+            const newTask = createTaskObject(parsed.title, parsed.time, parsed.category, 'ভয়েস কমান্ডে যোগ করা', true, true);
             state.tasks.push(newTask);
+            state.settings.guardianArmed = true;
+            state.settings.backgroundMode = true;
+            unlockAudioContext();
+            startBackgroundKeepAlive();
             sortTasks();
             saveState();
             renderAll();
+            updateMediaSessionMetadata();
             speakBengali(
-              `ঠিক আছে${callName}, ${sanitizeTextForHumanSpeech(newTask.title)} কাজটি ${getBengaliSpokenTime(newTask.time)} সময়ের জন্য রুটিনে যোগ করে দিয়েছি।`,
+              `ঠিক আছে${callName}, ${sanitizeTextForHumanSpeech(newTask.title)} কাজটি প্রতিদিন ${getBengaliSpokenTime(newTask.time)} সময়ে এলার্ম বাজানোর জন্য যোগ করে দিয়েছি।`,
               { listenAfter: false }
             );
             return;
@@ -4558,8 +4620,11 @@
         // =====================================================================
         // 6. TASK OPERATIONS & SCHEDULED AUTO-TRIGGER LOOP
         // =====================================================================
-        function createTaskObject(title, time, category, note, customMessage = true) {
+        function createTaskObject(title, time, category, note, customMessage = true, dailyRepeat = true) {
           const cleanTitle = sanitizeTextForHumanSpeech(title);
+          const now = getAppNow();
+          const nowHHMM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+          const alreadyPassedToday = time < nowHHMM;
           return {
             id: 't_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
             time,
@@ -4568,8 +4633,9 @@
             note: note || '',
             completed: false,
             snoozeUntil: null,
-            triggeredToday: false,
+            triggeredToday: alreadyPassedToday,
             customMessage: Boolean(customMessage),
+            dailyRepeat: dailyRepeat !== false,
           };
         }
 
@@ -4590,6 +4656,7 @@
           const task = state.tasks.find((t) => t.id === id);
           if (!task) return;
           clearBgRepeatTimer();
+          state.bgRepeatAttempt = 0;
           if (state.pendingFollowUpTaskId === id) state.pendingFollowUpTaskId = null;
           task.completed = true;
           task.snoozeUntil = null;
@@ -4611,6 +4678,7 @@
           const task = state.tasks.find((t) => t.id === id);
           if (!task) return;
           clearBgRepeatTimer();
+          state.bgRepeatAttempt = 0;
           if (state.pendingFollowUpTaskId === id) state.pendingFollowUpTaskId = null;
           task.completed = !task.completed;
           if (task.completed) {
@@ -4632,6 +4700,7 @@
           const task = state.tasks.find((t) => t.id === id);
           if (!task) return;
           clearBgRepeatTimer();
+          state.bgRepeatAttempt = 0;
           if (state.pendingFollowUpTaskId === id) state.pendingFollowUpTaskId = null;
           task.completed = false;
           task.snoozeUntil = getAppNow().getTime() + minutes * 60 * 1000;
@@ -4651,6 +4720,7 @@
 
         function deleteTask(id) {
           clearBgRepeatTimer();
+          state.bgRepeatAttempt = 0;
           if (state.pendingFollowUpTaskId === id) state.pendingFollowUpTaskId = null;
           state.tasks = state.tasks.filter((t) => t.id !== id);
           if (state.activeTaskId === id) {
@@ -4710,13 +4780,16 @@
           saveState();
           renderAll();
 
+          state.activeTaskId = task.id;
+          els.activeTaskIndicator.textContent = `⏰ ${task.title}`;
+          els.activeReplyActions.classList.remove('hidden');
+
           if (fromSchedule && 'vibrate' in navigator) {
             try {
-              navigator.vibrate([320, 140, 320, 140, 480]);
+              navigator.vibrate([500, 180, 500, 180, 700]);
             } catch (_) {}
           }
 
-          playGuardianChime(fromSchedule, task.category);
           updateMediaSessionMetadata(task);
 
           if (fromSchedule && 'Notification' in window && Notification.permission === 'granted') {
@@ -4726,29 +4799,31 @@
           const isHidden = document.hidden || document.visibilityState === 'hidden';
           if (isHidden) {
             state.pendingFollowUpTaskId = task.id;
-            if (fromSchedule && !isRepeat && state.settings.backgroundMode) {
+            if (!isRepeat) state.bgRepeatAttempt = 0;
+            if (fromSchedule && state.settings.backgroundMode && state.bgRepeatAttempt < 3) {
               clearBgRepeatTimer();
               state.bgRepeatTimer = setTimeout(() => {
                 const latest = state.tasks.find((t) => t.id === task.id);
                 if (latest && !latest.completed && !latest.snoozeUntil && state.settings.guardianArmed) {
+                  state.bgRepeatAttempt += 1;
                   triggerTaskVoice(task.id, { fromSchedule: true, isRepeat: true });
                 }
-              }, 120000);
+              }, 55000);
             }
           } else {
             state.pendingFollowUpTaskId = null;
+            state.bgRepeatAttempt = 0;
             clearBgRepeatTimer();
           }
 
           const msg = buildReminderSpeech(task);
-          setTimeout(() => {
-            speakBengali(msg, {
-              listenAfter: !isHidden,
-              taskId: task.id,
-              repeatCount: getReminderRepeatCount(),
-              repeatGapMs: 680,
-            });
-          }, 320);
+          // Speak directly like a natural human with zero ringtone or bell chime
+          speakBengali(msg, {
+            listenAfter: !isHidden,
+            taskId: task.id,
+            repeatCount: getReminderRepeatCount(),
+            repeatGapMs: 720,
+          });
         }
 
         function formatClockWithSeconds(dateObj) {
@@ -4840,11 +4915,19 @@
 
           updateClockDisplay();
 
-          // Check date rollover at midnight
+          if (hhmm !== state.lastMediaSessionMinute) {
+            state.lastMediaSessionMinute = hhmm;
+            if (state.settings.guardianArmed && state.settings.backgroundMode) {
+              updateMediaSessionMetadata();
+            }
+          }
+
+          // Check date rollover at midnight: automatically reset daily alarms every new day
           const today = getTodayKey();
           const lastDate = localStorage.getItem(STORAGE_KEYS.LAST_DATE);
           if (lastDate && lastDate !== today) {
             state.tasks.forEach((t) => {
+              if (t.dailyRepeat === false) return;
               t.completed = false;
               t.snoozeUntil = null;
               t.triggeredToday = false;
@@ -5115,12 +5198,15 @@
             info.className = 'min-w-0 flex-1 space-y-1';
 
             // Clean unboxed metadata row with middot separators (Zero-Pill Discipline)
+            const repeatLabel = task.dailyRepeat === false ? 'একবার' : 'প্রতিদিন';
             const metaRow = document.createElement('div');
             metaRow.className = 'flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-400';
             metaRow.innerHTML = `
               <span class="font-mono-tabular font-semibold text-slate-100">${formatDisplayTime(task.time)}</span>
               <span aria-hidden="true">·</span>
               <span>${escapeHtml(task.category)}</span>
+              <span aria-hidden="true">·</span>
+              <span class="text-sky-300/90">${repeatLabel}</span>
               <span aria-hidden="true">·</span>
               <span class="font-medium ${statusColor}">${statusText}</span>
             `;
@@ -5278,6 +5364,9 @@
             els.taskTimeInput.value = taskToEdit.time;
             els.taskCategoryInput.value = taskToEdit.category;
             els.taskNoteInput.value = taskToEdit.note || '';
+            if (els.taskDailyRepeatInput) {
+              els.taskDailyRepeatInput.checked = taskToEdit.dailyRepeat !== false;
+            }
           } else {
             els.taskModalTitle.textContent = 'নতুন রুটিন যোগ করুন';
             els.taskIdInput.value = '';
@@ -5287,6 +5376,9 @@
             els.taskTimeInput.value = `${String(nextMin.getHours()).padStart(2, '0')}:${String(nextMin.getMinutes()).padStart(2, '0')}`;
             els.taskCategoryInput.value = 'দৈনন্দিন';
             els.taskNoteInput.value = '';
+            if (els.taskDailyRepeatInput) {
+              els.taskDailyRepeatInput.checked = true;
+            }
           }
           els.taskModal.classList.remove('hidden');
           els.taskModal.classList.add('flex');
@@ -5355,8 +5447,13 @@
           const time = els.taskTimeInput.value.trim();
           const category = els.taskCategoryInput.value;
           const note = els.taskNoteInput.value.trim();
+          const dailyRepeat = els.taskDailyRepeatInput ? els.taskDailyRepeatInput.checked : true;
 
           if (!title || !time) return;
+
+          const now = getAppNow();
+          const nowHHMM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+          const alreadyPassedToday = time < nowHHMM;
 
           if (id) {
             const existing = state.tasks.find((t) => t.id === id);
@@ -5365,12 +5462,23 @@
               existing.time = time;
               existing.category = category;
               existing.note = note;
-              existing.triggeredToday = false;
+              existing.completed = false;
+              existing.triggeredToday = alreadyPassedToday;
               existing.snoozeUntil = null;
               existing.customMessage = true;
+              existing.dailyRepeat = dailyRepeat;
             }
           } else {
-            state.tasks.push(createTaskObject(title, time, category, note, true));
+            state.tasks.push(createTaskObject(title, time, category, note, true, dailyRepeat));
+          }
+
+          // Automatically arm background & offline alarm engine on save gesture
+          state.settings.guardianArmed = true;
+          state.settings.backgroundMode = true;
+          unlockAudioContext();
+          startBackgroundKeepAlive();
+          if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission().then(() => renderBgModeButton()).catch(() => {});
           }
 
           sortTasks();
@@ -5378,6 +5486,14 @@
           renderAll();
           updateMediaSessionMetadata();
           closeTaskModal();
+
+          const name = getUserAddressName();
+          const repeatText = dailyRepeat ? 'প্রতিদিন' : 'শুধু একদিনের জন্য';
+          const whenText = alreadyPassedToday ? 'আগামীকাল থেকে প্রতিদিন' : getBengaliSpokenTime(time);
+          speakBengali(
+            `ঠিক আছে${name ? ' ' + name : ''}, ${getBengaliSpokenTime(time)}-এর এলার্ম ${dailyRepeat ? whenText : repeatText} বাজানোর জন্য সেট করা হয়েছে।`,
+            { listenAfter: false }
+          );
         });
 
         // =====================================================================
@@ -6172,7 +6288,6 @@
           if ('vibrate' in navigator) {
             try { navigator.vibrate([220, 120, 260]); } catch (_) {}
           }
-          playGuardianChime(true);
           if (name) {
             speakBengali(`${name}, আপনার ফোনে একটি টেস্ট লক-স্ক্রিন নোটিফিকেশন পাঠানো হয়েছে।`, { listenAfter: false });
           }
@@ -6186,10 +6301,9 @@
             saveState();
             startBackgroundKeepAlive();
             renderGuardianArmButton();
-            playGuardianChime(true);
             const name = getUserAddressName();
             speakBengali(
-              `${name ? name + ', ' : ''}অডিও এবং ব্যাকগ্রাউন্ড সেশন একদম ঠিকমতো কাজ করছে।`,
+              `${name ? name + ', ' : ''}কোনো রিংটোন ছাড়াই আমার মানুষের মতো বাংলা কণ্ঠ ও ব্যাকগ্রাউন্ড সেশন একদম ঠিকমতো কাজ করছে।`,
               { listenAfter: false }
             );
             refreshSystemReadinessUI();
@@ -6238,7 +6352,6 @@
             if ('vibrate' in navigator) {
               try { navigator.vibrate([220, 120, 260]); } catch (_) {}
             }
-            playGuardianChime(true);
 
             if ('Notification' in window && Notification.permission === 'granted') {
               dispatchPersistentTaskNotification(
@@ -6257,10 +6370,10 @@
             const name = getUserAddressName();
             setTimeout(() => {
               speakBengali(
-                `চমৎকার${name ? ' ' + name : ''}! অটো-রিমাইন্ডার, ব্যাকগ্রাউন্ড সেশন এবং নোটিফিকেশন সিস্টেম সম্পূর্ণভাবে চালু করা হয়েছে।`,
+                `চমৎকার${name ? ' ' + name : ''}! কোনো রিংটোন ছাড়াই সরাসরি মানুষের মতো বাংলা ভয়েস ও ব্যাকগ্রাউন্ড সিস্টেম সম্পূর্ণভাবে চালু করা হয়েছে।`,
                 { listenAfter: false }
               );
-            }, 260);
+            }, 220);
           });
         }
 
@@ -6293,12 +6406,11 @@
           els.audioUnlockBanner.classList.remove('hidden');
           els.audioUnlockBanner.addEventListener('click', () => {
             unlockAudioContext();
-            playGuardianChime();
             const name = getUserAddressName();
             if (name) {
               setTimeout(() => {
                 speakBengali(`হ্যালো ${name}, আপনার রুটিন অভিভাবক প্রস্তুত আছে।`, { listenAfter: false });
-              }, 240);
+              }, 200);
             }
           });
         }
